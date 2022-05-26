@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:rgit.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:rgit="clr-namespace:rgit.Controls"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="rgit.Views.LogWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="rgit"
+        KeyDown="OnKeyDown"
+        Closing="OnClosing">
+
+    <Design.DataContext>
+        <vm:GitViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="Button.footer">
+            <Setter Property="Width" Value="128" />
+            <Setter Property="Margin" Value="8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center"></Setter>
+        </Style>
+    </Window.Styles>
+
+    <Grid Name="MainGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="24"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="4"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="4"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="64"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <TextBlock
+            Grid.Row="0"
+            Name="BranchText"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center"
+            Padding="8, 0, 0, 0" />
+
+        <rgit:LogPanel Grid.Row="1"
+            Name="LogPanel"
+            Repository="{Binding Repository}">
+        </rgit:LogPanel>
+        
+        <GridSplitter Grid.Row="2" Background="#AAA" ResizeDirection="Rows" />
+        
+        <Grid Grid.Row="3">
+            <TextBox
+                Grid.Row="0"
+                Name="CommitMessageBox"
+                IsReadOnly="True"
+                >
+            </TextBox>
+        </Grid>
+
+        <GridSplitter Grid.Row="4" Background="#AAA" ResizeDirection="Rows" />
+
+        <ScrollViewer Grid.Row="5">
+            <rgit:StatusPanel
+                Name="StatusPanel"
+                Repository="{Binding Repository}">
+            </rgit:StatusPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="1" Classes="footer" Click="Ok_OnClick">OK</Button>
+        </Grid>
+    </Grid>
+
+</Window>

@@ -12,6 +12,7 @@ namespace rgit;
 public enum LaunchCommand
 {
     Commit,
+    Difftool,
     Log,
     Status,
 }
@@ -64,6 +65,14 @@ public class CommandLineArgs
                     stream.WriteLine("");
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Displays commit dialog.");
+                    break;
+                }
+                case LaunchCommand.Difftool:
+                {
+                    stream.WriteLine($"rgit difftool");
+                    stream.WriteLine("");
+                    stream.WriteLine("DESCRIPTION:");
+                    stream.WriteLine("Similar to git difftool except it launches them all simultaneously.");
                     break;
                 }
                 case LaunchCommand.Log:
@@ -151,6 +160,13 @@ public class CommandLineArgs
         switch (command)
         {
             case LaunchCommand.Commit:
+            {
+                // No arguments
+                value = new CommandLineArgs(command, repo);
+
+                break;
+            }
+            case LaunchCommand.Difftool:
             {
                 // No arguments
                 value = new CommandLineArgs(command, repo);

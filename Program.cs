@@ -30,9 +30,17 @@ namespace rgit
 
             try
             {
-                BuildAvaloniaApp()
-                    .StartWithClassicDesktopLifetime(args);
-                Settings.Save();
+                if (commandLineArgs.Command == LaunchCommand.Difftool)
+                {
+                    rgit.Views.Difftool.Run(repository);
+                    return 0;
+                }
+                else
+                {
+                    BuildAvaloniaApp()
+                        .StartWithClassicDesktopLifetime(args);
+                    Settings.Save();
+                }
             }
             finally
             {

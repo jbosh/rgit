@@ -208,8 +208,6 @@ public partial class ListView : UserControl, IDisposable
                     var columnWidth = column.Width;
                     var right = left + columnWidth;
 
-                    if (Math.Abs(this.mousePosition.Y - (-1)) > 0.001f)
-                        Console.WriteLine();
                     var isHovered = this.mousePosition.Y - scrollOffsetY < HeadingHeight && this.mousePosition.X > left && this.mousePosition.X < right;
 
                     // Draw background always to cover rows

@@ -105,9 +105,10 @@ public class CommandLineArgs
         {
             stream.WriteLine("rgit COMMAND [...]");
             stream.WriteLine("COMMAND:");
-            stream.WriteLine("  status   launches a status window");
             stream.WriteLine("  commit   launches a commit window");
+            stream.WriteLine("  difftool similar to git difftool but launches all simultaneously");
             stream.WriteLine("  log      launches a log window");
+            stream.WriteLine("  status   launches a status window");
         }
     }
 
@@ -140,7 +141,7 @@ public class CommandLineArgs
             {
                 repo = new Repository(currentDirectory);
             }
-            catch (RepositoryNotFoundException ex)
+            catch (RepositoryNotFoundException)
             {
                 currentDirectory = Path.GetDirectoryName(currentDirectory);
                 if (currentDirectory != null)

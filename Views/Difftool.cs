@@ -29,7 +29,7 @@ public static class Difftool
                 FileStatus.RenamedInIndex => new GitStatus(item.FilePath, GitStatusString.Renamed, item),
                 FileStatus.RenamedInIndex | FileStatus.ModifiedInWorkdir => new GitStatus(item.FilePath, GitStatusString.Renamed, item),
                 FileStatus.Ignored => null,
-                _ => throw new NotImplementedException($"{item.State} not implemented.")
+                _ => throw new NotImplementedException($"{item.State} not implemented."),
             };
             
             if (status != null)

@@ -563,6 +563,7 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(r => r.Status!));
+			this.Refresh();
         }
     }
 
@@ -574,6 +575,7 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Working)), gitVersionBefore);
+			this.Refresh();
         }
     }
 
@@ -582,6 +584,7 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.StageFiles(files.Select(r => r.Status!));
+			this.Refresh();
         }
 
         this.Refresh();
@@ -592,9 +595,8 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Staging)));
+			this.Refresh();
         }
-
-        this.Refresh();
     }
 
     private async void UnstageFiles(params GitStatusRow[] files)
@@ -602,9 +604,8 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.UnstageFiles(files.Select(f => f.Status!));
+			this.Refresh();
         }
-
-        this.Refresh();
     }
 
     private async void RevertFiles(params GitStatusRow[] files)
@@ -623,7 +624,6 @@ public partial class StatusPanel : UserControl
                     await this.repository.RevertFiles(files.Select(r => r.Status!));
                 }
 
-                this.Refresh();
                 break;
             }
             default:

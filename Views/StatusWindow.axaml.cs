@@ -95,6 +95,7 @@ namespace rgit.Views
                 DataContext = this.model,
             };
             await commitWindow.ShowDialog(this);
+			this.Refresh();
         }
 
         private void OnClosing(object? sender, CancelEventArgs e)

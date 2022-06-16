@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Platform;
 using Avalonia.ReactiveUI;
@@ -88,7 +89,14 @@ namespace rgit
 
         public IWindowImpl CreateWindow()
         {
-            return new DarkMode.DarkModeWindow();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return new DarkMode.DarkModeWindow();
+            }
+            else
+            {
+                return this.parent.CreateWindow();
+            }
         }
 
         public IWindowImpl CreateEmbeddableWindow() => this.parent.CreateEmbeddableWindow();

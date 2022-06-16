@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using DynamicData;
 using LibGit2Sharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ReactiveUI;
 
 namespace rgit;
 
@@ -21,6 +15,7 @@ public static class GitGraph
         var segments = new Dictionary<string, Segment>();
         var index = 0;
 
+        // Recursively fill out log graph.
         {
             var stackFrame = new Stack<(Commit commit, Segment segment, bool isHead)>();
             stackFrame.Push((tip, new Segment(), false));
@@ -36,7 +31,7 @@ public static class GitGraph
 
                     var node = new WorkingNode(commit, index);
                     node.Column = segment.Identifier;
-                    
+
                     if (path != null)
                     {
                         var visible = false;
@@ -57,7 +52,7 @@ public static class GitGraph
 
                         node.Hidden = !visible;
                     }
-                    
+
                     allNodes.Add(commit.Sha, node);
                     segments.Add(commit.Sha, segment);
                     index++;
@@ -150,7 +145,7 @@ public static class GitGraph
                 // Add to segments if we don't exist
                 if (!activeBranches.TryGetValue(segment, out var column))
                 {
-                    Debug.Assert(segment.Start == node.Sha);
+                    Debug.Assert(segment.Start == node.Sha, "Starting node should match start of segment.");
                     column = Enumerable.Range(0, int.MaxValue).First(i => !activeBranches.ContainsValue(i));
                     activeBranches[segment] = column;
 
@@ -176,7 +171,9 @@ public static class GitGraph
                 if (segment.End == node.Sha)
                 {
                     if (node.Parent0 == null)
+                    {
                         activeBranches.Remove(segment);
+                    }
                     else
                     {
                         var removalRow = node.Parent0.Row;
@@ -246,17 +243,17 @@ public static class GitGraph
     }
 
     [DebuggerDisplay("[{Column}] {MessageShort}")]
-    private class WorkingNode
+    private sealed class WorkingNode
     {
-        public int TopologicalOrder;
-        public int Row = -1;
-        public int Column = -1;
-        public WorkingNode? Parent0;
-        public WorkingNode? Parent1;
+        public int TopologicalOrder { get; set; }
+        public int Row { get; set; } = -1;
+        public int Column { get; set; } = -1;
+        public WorkingNode? Parent0 { get; set; }
+        public WorkingNode? Parent1 { get; set; }
         public List<WorkingNode> Children { get; } = new();
-        public List<int> Lines = new();
+        public List<int> Lines { get; set; } = new();
         public string Sha { get; }
-        public string[] ParentShas;
+        public string[] ParentShas { get; set; }
         public string Message { get; }
         public string MessageShort { get; }
         public Signature Author { get; }
@@ -321,20 +318,35 @@ public static class GitGraph
     }
 
     [DebuggerDisplay("{Identifier}")]
-    private class Segment : IComparable<Segment>
+    private sealed class Segment : IComparable<Segment>, IEquatable<Segment>
     {
-        public string? Start;
-        public string? End;
-        public readonly int Identifier = IdentifierCount++;
-        private static int IdentifierCount;
+        public string? Start { get; set; }
+        public string? End { get; set; }
+        public int Identifier { get; } = IdentifierCount++;
+        private static int IdentifierCount { get; set; }
 
+        public static bool operator ==(Segment a, Segment b) => a.Equals(b);
+        public static bool operator !=(Segment a, Segment b) => !a.Equals(b);
+        public static bool operator <(Segment a, Segment b) => a.Identifier < b.Identifier;
+        public static bool operator <=(Segment a, Segment b) => a.Identifier <= b.Identifier;
+        public static bool operator >(Segment a, Segment b) => a.Identifier > b.Identifier;
+        public static bool operator >=(Segment a, Segment b) => a.Identifier >= b.Identifier;
         public int CompareTo(Segment? other) => this.Identifier.CompareTo(other?.Identifier ?? -1);
 
         public override bool Equals(object? obj)
         {
             if (obj is Segment s)
-                return this.Identifier == s.Identifier;
+                return this.Equals(s);
             return false;
+        }
+
+        public bool Equals(Segment? other)
+        {
+            if (ReferenceEquals(null, other))
+                return false;
+            if (ReferenceEquals(this, other))
+                return true;
+            return this.Identifier == other.Identifier;
         }
 
         public override int GetHashCode()

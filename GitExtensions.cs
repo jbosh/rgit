@@ -373,7 +373,6 @@ public static class GitExtensions
             }
         });
 
-
     /// <summary>
     /// Gets a file using revision and path.
     /// </summary>

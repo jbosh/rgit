@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -15,14 +14,15 @@ namespace rgit.Views
     {
         private GitViewModel? model;
 
-        public StatusWindow() : this(null)
+        public StatusWindow()
+            : this(null)
         {
         }
 
         public StatusWindow(CommandLineArgs.StatusArgs? args)
         {
-            InitializeComponent();
-            
+            this.InitializeComponent();
+
             var settings = Settings.StatusWindow;
             if (settings.Bounds != null)
             {
@@ -45,7 +45,7 @@ namespace rgit.Views
 
             this.StatusPanel = this.FindControl<StatusPanel>(nameof(this.StatusPanel));
             this.BranchText = this.FindControl<TextBlock>(nameof(this.BranchText));
-            
+
             this.StatusPanel.PathSpec = args?.Path;
             this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
         }
@@ -95,7 +95,7 @@ namespace rgit.Views
                 DataContext = this.model,
             };
             await commitWindow.ShowDialog(this);
-			this.Refresh();
+            this.Refresh();
         }
 
         private void OnClosing(object? sender, CancelEventArgs e)

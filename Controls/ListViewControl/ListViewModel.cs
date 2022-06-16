@@ -1,18 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
 using Avalonia.Input;
 using SkiaSharp;
 
 namespace rgit.Controls;
 
+/// <summary>
+/// Direction to sort a column.
+/// </summary>
 public enum ListViewSortDirection
 {
+    /// <summary>
+    /// Items are sorted in ascending order.
+    /// </summary>
     Ascending,
+
+    /// <summary>
+    /// Items are sorted in ascending order.
+    /// </summary>
     Descending,
 }
 
+/// <summary>
+/// Model used to back <see cref="ListView"/>.
+/// </summary>
 public abstract class ListViewModel
 {
     public const int RowTextPadding = 4;
@@ -21,6 +33,7 @@ public abstract class ListViewModel
     public abstract int RowCount { get; }
     public abstract string GetCellValue(int row, int col);
     public List<ListViewColumn> Columns { get; } = new();
+    public object SynchronizationObject { get; } = new object();
 
     public ListView? ListView { get; internal set; }
 
@@ -42,7 +55,7 @@ public abstract class ListViewModel
 
     public void BeginUpdate()
     {
-        lock (this)
+        lock (this.SynchronizationObject)
         {
             this.Updating = true;
         }
@@ -50,11 +63,11 @@ public abstract class ListViewModel
 
     public void EndUpdate()
     {
-        lock (this)
+        lock (this.SynchronizationObject)
         {
             this.Updating = false;
         }
-        
+
         this.InvalidateVisual();
     }
 
@@ -68,9 +81,9 @@ public abstract class ListViewModel
         }
 
         var left = 0.0f;
-        for (var i = 0; i < Columns.Count; i++)
+        for (var i = 0; i < this.Columns.Count; i++)
         {
-            var column = Columns[i];
+            var column = this.Columns[i];
             var text = this.GetCellValue(rowIndex, i);
             var right = left + column.Width;
             canvas.Save();

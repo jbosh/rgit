@@ -31,7 +31,7 @@ public static class Difftool
                 FileStatus.Ignored => null,
                 _ => throw new NotImplementedException($"{item.State} not implemented."),
             };
-            
+
             if (status != null)
                 statuses.Add(status);
         }
@@ -40,10 +40,8 @@ public static class Difftool
         {
             Console.Out.WriteLine($"You're about to open {statuses.Count} diffs. Continue [y/N]?");
             var response = Console.ReadLine();
-            if (string.Equals(response, "y", StringComparison.InvariantCultureIgnoreCase) || string.Equals(response, "yes", StringComparison.InvariantCultureIgnoreCase))
-            {
-            }
-            else
+            if (!string.Equals(response, "y", StringComparison.InvariantCultureIgnoreCase)
+                && !string.Equals(response, "yes", StringComparison.InvariantCultureIgnoreCase))
             {
                 return;
             }

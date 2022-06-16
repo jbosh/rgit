@@ -19,7 +19,7 @@ public enum GitStatusString
     Unknown,
 
     /// <summary>
-    /// Special case when using GUI to write to stage. 
+    /// Special case when using GUI to write to stage.
     /// </summary>
     Staging,
 

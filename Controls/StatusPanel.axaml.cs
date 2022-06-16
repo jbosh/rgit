@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
-using Avalonia.Media;
+using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
-using Avalonia.X11;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using LibGit2Sharp;
 using MessageBox.Avalonia.Enums;
 using SkiaSharp;
@@ -44,45 +44,45 @@ public partial class StatusPanel : UserControl
         }
     }
 
-    private Repository? repository;
-    private string? pathspec;
+    private readonly ContextMenuItem[] contextMenuItems;
     private readonly IList<GitStatus> stagedItems = new List<GitStatus>();
     private readonly IList<GitStatus> unstagedItems = new List<GitStatus>();
     private readonly IList<GitStatus> unversionedItems = new List<GitStatus>();
     private readonly IList<GitStatus> diffParent0 = new List<GitStatus>();
     private readonly IList<GitStatus> diffParent1 = new List<GitStatus>();
 
+    private Repository? repository;
+    private string? pathspec;
+
     public StatusPanelModel Model { get; } = new();
-    private readonly ContextMenuItem[] contextMenuItems;
 
     private string? gitVersionBefore;
     private string? gitVersionAfter;
-    public bool IsLogs;
+    public bool IsLogs { get; set; }
     private int sortColumn;
 
     private static readonly SKPaint GroupHeadingPaint = new() { Color = new SKColor(128, 222, 234) };
 
     public StatusPanel()
     {
-        InitializeComponent();
+        this.InitializeComponent();
 
         this.contextMenuItems = new[]
         {
             new ContextMenuItem
             {
                 Text = "Compare with base",
-                //Image = Images["search"],
-                OnClick = DiffFiles,
+                OnClick = this.DiffFiles,
                 AllowStagedItems = true,
                 AllowUnstagedItems = true,
                 AllowLogs = true,
                 AllowVersioned = true,
+                AllowUnversionedItems = true,
             },
             new ContextMenuItem
             {
                 Text = "Compare with working tree",
-                //Image = Images["search"],
-                OnClick = DiffFilesWithWorkingTree,
+                OnClick = this.DiffFilesWithWorkingTree,
                 AllowStagedItems = true,
                 AllowUnstagedItems = true,
                 AllowVersioned = true,
@@ -93,8 +93,7 @@ public partial class StatusPanel : UserControl
             new ContextMenuItem
             {
                 Text = "Stage",
-                //Image = Images["stage"],
-                OnClick = StageFiles,
+                OnClick = this.StageFiles,
                 AllowUnstagedItems = true,
                 AllowUnversionedItems = true,
                 Filter = items => items.Any(i => !i.IsUnversioned),
@@ -102,15 +101,13 @@ public partial class StatusPanel : UserControl
             new ContextMenuItem
             {
                 Text = "Stage with GUI",
-                //Image = Images["stage-gui"],
-                OnClick = StageFilesWithGUI,
+                OnClick = this.StageFilesWithGUI,
                 AllowUnstagedItems = true,
             },
             new ContextMenuItem
             {
                 Text = "Add",
-                //Image = Images["add"],
-                OnClick = StageFiles,
+                OnClick = this.StageFiles,
                 AllowUnversionedItems = true,
             },
 
@@ -118,31 +115,28 @@ public partial class StatusPanel : UserControl
             new ContextMenuItem
             {
                 Text = "Reset",
-                //Image = Images["reset"],
-                OnClick = UnstageFiles,
+                OnClick = this.UnstageFiles,
                 AllowStagedItems = true,
             },
             new ContextMenuItem
             {
                 Text = "Revert",
-                //Image = Images["revert"],
-                OnClick = RevertFiles,
+                OnClick = this.RevertFiles,
                 AllowUnstagedItems = true,
             },
             new ContextMenuItem
             {
                 Text = "Delete",
-                //Image = Images["delete"],
-                OnClick = DeleteFiles,
+                OnClick = this.DeleteFiles,
                 AllowUnversionedItems = true,
             },
         };
 
         this.ListView.Multiselect = true;
         this.ListView.Model = this.Model;
-        this.Model.OnContextMenu += OnContextMenu;
-        this.Model.OnSelectionChanged += OnSelectionChanged;
-        this.Model.OnDoubleClicked += OnDoubleClicked;
+        this.Model.OnContextMenu += this.OnContextMenu;
+        this.Model.OnSelectionChanged += this.OnSelectionChanged;
+        this.Model.OnDoubleClicked += this.OnDoubleClicked;
         for (var i = 0; i < this.Model.Columns.Count; i++)
         {
             var sortColumn = i;
@@ -197,7 +191,7 @@ public partial class StatusPanel : UserControl
         this.Refresh();
     }
 
-    public async void Refresh()
+    public void Refresh()
     {
         this.stagedItems.Clear();
         this.unstagedItems.Clear();
@@ -296,7 +290,7 @@ public partial class StatusPanel : UserControl
                                 ChangeKind.Modified => GitStatusString.Modified,
                                 ChangeKind.Renamed => GitStatusString.Renamed,
                                 ChangeKind.TypeChanged => GitStatusString.Modified,
-                                _ => throw new ArgumentOutOfRangeException(),
+                                _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
                             };
                             this.diffParent0.Add(new GitStatus(entry.Path, status, entry));
                         }
@@ -316,12 +310,14 @@ public partial class StatusPanel : UserControl
                                 ChangeKind.Modified => GitStatusString.Modified,
                                 ChangeKind.Renamed => GitStatusString.Renamed,
                                 ChangeKind.TypeChanged => GitStatusString.Modified,
-                                _ => throw new ArgumentOutOfRangeException(),
+                                _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
                             };
                             this.diffParent1.Add(new GitStatus(entry.Path, status, entry));
                         }
 
+#pragma warning disable S907 // Cannot use goto.
                         goto case 1;
+#pragma warning restore S907
                     }
                     default:
                     {
@@ -435,18 +431,26 @@ public partial class StatusPanel : UserControl
                 {
                     var add = true;
                     if (!menuItem.AllowStagedItems && isStaged)
+                    {
                         add = false;
+                    }
                     else if (!menuItem.AllowUnstagedItems && isUnstaged)
+                    {
                         add = false;
+                    }
                     else if (!menuItem.AllowUnversionedItems && isUnversioned)
+                    {
                         add = false;
+                    }
                     else if (menuItem.Filter != null && !menuItem.Filter(selectedItems))
+                    {
                         add = false;
+                    }
                     else
                     {
                         if (this.gitVersionBefore != null || this.gitVersionAfter != null)
                         {
-                            if (!menuItem.AllowVersioned && !menuItem.AllowVersioned)
+                            if (!menuItem.AllowVersioned)
                                 add = false;
                         }
                         else if (menuItem.VersionedOnly)
@@ -456,12 +460,8 @@ public partial class StatusPanel : UserControl
 
                         if (this.IsLogs)
                         {
-                            if (!menuItem.AllowLogs && !menuItem.LogsOnly)
+                            if (!menuItem.AllowLogs)
                                 add = false;
-                        }
-                        else if (menuItem.LogsOnly)
-                        {
-                            add = false;
                         }
                     }
 
@@ -478,7 +478,7 @@ public partial class StatusPanel : UserControl
                         {
                             Header = menuItem.Text,
                         };
-                        newMenuItem.PointerPressed += (_o, _e) => menuItem.OnClick(selectedItems);
+                        newMenuItem.PointerPressed += (_, _) => menuItem.OnClick(selectedItems);
                         menuItems.Add(newMenuItem);
                     }
                 }
@@ -524,8 +524,8 @@ public partial class StatusPanel : UserControl
                 }
             }
         }
-        
-        this.Refresh();
+
+        this.InvalidateVisual();
     }
 
     private void OnDoubleClicked()
@@ -536,7 +536,7 @@ public partial class StatusPanel : UserControl
         if (selectedItems[0].IsHeading)
             return;
 
-        this.DiffFiles(selectedItems);
+        _ = this.DiffFiles(selectedItems);
     }
 
     private GitStatusRow[] GetSelectedItems()
@@ -555,7 +555,7 @@ public partial class StatusPanel : UserControl
         return result.ToArray();
     }
 
-    private async void DiffFiles(params GitStatusRow[] files)
+    private async Task DiffFiles(params GitStatusRow[] files)
     {
         if (files.Length == 0)
             files = this.GetSelectedItems();
@@ -563,52 +563,52 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(r => r.Status!));
-			this.Refresh();
+            this.Refresh();
         }
     }
 
-    private async void DiffFilesWithWorkingTree(params GitStatusRow[] files)
+    private async Task DiffFilesWithWorkingTree(params GitStatusRow[] files)
     {
         if (files.Length == 0)
             files = this.GetSelectedItems();
-        
+
         if (this.repository != null)
         {
-            await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Working)), gitVersionBefore);
-			this.Refresh();
+            await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Working)), this.gitVersionBefore);
+            this.Refresh();
         }
     }
 
-    private async void StageFiles(params GitStatusRow[] files)
+    private async Task StageFiles(params GitStatusRow[] files)
     {
         if (this.repository != null)
         {
             await this.repository.StageFiles(files.Select(r => r.Status!));
-			this.Refresh();
+            this.Refresh();
         }
 
         this.Refresh();
     }
 
-    private async void StageFilesWithGUI(params GitStatusRow[] files)
+    private async Task StageFilesWithGUI(params GitStatusRow[] files)
     {
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Staging)));
-			this.Refresh();
+            this.Refresh();
         }
     }
 
-    private async void UnstageFiles(params GitStatusRow[] files)
+    private async Task UnstageFiles(params GitStatusRow[] files)
     {
         if (this.repository != null)
         {
             await this.repository.UnstageFiles(files.Select(f => f.Status!));
-			this.Refresh();
+            this.Refresh();
         }
     }
 
-    private async void RevertFiles(params GitStatusRow[] files)
+    private async Task RevertFiles(params GitStatusRow[] files)
     {
         var msg = files.Length == 1
             ? $"Are you sure you want to revert {files[0].Status!.Path}?"
@@ -628,7 +628,7 @@ public partial class StatusPanel : UserControl
             }
             default:
             {
-                //do nothing
+                // Do nothing.
                 break;
             }
         }
@@ -636,7 +636,7 @@ public partial class StatusPanel : UserControl
         this.Refresh();
     }
 
-    private async void DeleteFiles(params GitStatusRow[] files)
+    private async Task DeleteFiles(params GitStatusRow[] files)
     {
         var msg = files.Length == 1
             ? $"Are you sure you want to permanently delete {files[0].Status!.Path}?"
@@ -660,7 +660,7 @@ public partial class StatusPanel : UserControl
                     }
                     catch
                     {
-                        // should probably show a message box
+                        // Should probably show a message box.
                     }
                 }
 
@@ -668,7 +668,7 @@ public partial class StatusPanel : UserControl
             }
             default:
             {
-                //do nothing
+                // Do nothing.
                 break;
             }
         }
@@ -680,11 +680,11 @@ public partial class StatusPanel : UserControl
     {
         public string Text { get; set; }
         public GitStatus? Status { get; set; }
-        public bool IsHeading => Status == null;
+        public bool IsHeading => this.Status == null;
         public bool Selected { get; set; }
         public bool Hovered { get; set; }
 
-        public bool IsStaged => Status?.Status switch
+        public bool IsStaged => this.Status?.Status switch
         {
             GitStatusString.Added => true,
             GitStatusString.Renamed => true,
@@ -693,13 +693,13 @@ public partial class StatusPanel : UserControl
             _ => false,
         };
 
-        public bool IsUnstaged => Status?.Status switch
+        public bool IsUnstaged => this.Status?.Status switch
         {
             GitStatusString.Unknown => false,
             _ => !this.IsStaged,
         };
 
-        public bool IsUnversioned => Status?.Status switch
+        public bool IsUnversioned => this.Status?.Status switch
         {
             GitStatusString.Unknown => true,
             _ => false,
@@ -721,51 +721,46 @@ public partial class StatusPanel : UserControl
     private struct ContextMenuItem
     {
         /// <summary>
-        /// Optional filter to iterate over items. Returns true if the item should display.
+        /// Gets optional filter to iterate over items. Returns true if the item should display.
         /// </summary>
         public Func<GitStatusRow[], bool>? Filter { get; init; }
 
         /// <summary>
-        /// True if allowed when staged items are selected.
+        /// Gets a value indicating whether this menu is allowed when staged items are selected.
         /// </summary>
         public bool AllowStagedItems { get; init; }
 
         /// <summary>
-        /// True if allowed when unstaged items are selected.
+        /// Gets a value indicating whether this menu is allowed when unstaged items are selected.
         /// </summary>
         public bool AllowUnstagedItems { get; init; }
 
         /// <summary>
-        /// True if allowed when unversioned items are selected.
+        /// Gets a value indicating whether this menu is allowed when unversioned items are selected.
         /// </summary>
         public bool AllowUnversionedItems { get; init; }
 
         /// <summary>
-        /// True if allowed when versioned items are selected.
+        /// Gets a value indicating whether this menu is allowed when versioned items are selected.
         /// </summary>
         public bool AllowVersioned { get; init; }
 
         /// <summary>
-        /// True if allowed only when using versioned files.
+        /// Gets a value indicating whether this menu is allowed only when using versioned files.
         /// </summary>
         public bool VersionedOnly { get; init; }
 
         /// <summary>
-        /// True if allowed during logs.
+        /// Gets a value indicating whether this menu is allowed during logs.
         /// </summary>
         public bool AllowLogs { get; init; }
-
-        /// <summary>
-        /// True if allowed only when logging.
-        /// </summary>
-        public bool LogsOnly { get; init; }
 
         /// <summary>
         /// Gets the text to display.
         /// </summary>
         public string Text { get; init; }
 
-        public delegate void OnClickDelegate(GitStatusRow[] items);
+        public delegate Task OnClickDelegate(GitStatusRow[] items);
 
         public OnClickDelegate OnClick { get; init; }
     }
@@ -774,7 +769,7 @@ public partial class StatusPanel : UserControl
     {
         private const int GroupHeadingPadding = 12;
 
-        public override int RowCount => Items.Count;
+        public override int RowCount => this.Items.Count;
         public List<GitStatusRow> Items { get; } = new();
 
         public StatusPanelModel()
@@ -788,7 +783,7 @@ public partial class StatusPanel : UserControl
         {
             var item = this.Items[row];
             if (item.Status == null)
-                return col == 0 ? item.Text : "";
+                return col == 0 ? item.Text : string.Empty;
 
             return col switch
             {
@@ -819,7 +814,7 @@ public partial class StatusPanel : UserControl
 
                 var headingLineLeft = (float)formattedText.Bounds.Right + GroupHeadingPadding + 8;
                 const float NudgeCenter = 1.5f;
-                var headingLineY = bounds.Top + ListView.LineHeight / 2.0f + NudgeCenter;
+                var headingLineY = bounds.Top + (ListView.LineHeight / 2.0f) + NudgeCenter;
                 canvas.DrawLine(headingLineLeft, headingLineY, (float)this.ListView.Bounds.Right - GroupHeadingPadding, headingLineY, GroupHeadingPaint);
             }
             else
@@ -832,9 +827,9 @@ public partial class StatusPanel : UserControl
                 }
 
                 var left = 0.0f;
-                for (var i = 0; i < Columns.Count; i++)
+                for (var i = 0; i < this.Columns.Count; i++)
                 {
-                    var column = Columns[i];
+                    var column = this.Columns[i];
                     var text = this.GetCellValue(rowIndex, i);
                     var right = left + column.Width;
                     canvas.Save();

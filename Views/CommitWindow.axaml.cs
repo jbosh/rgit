@@ -7,145 +7,144 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using rgit.ViewModels;
 
-namespace rgit.Views
+namespace rgit.Views;
+
+public partial class CommitWindow : Window
 {
-    public partial class CommitWindow : Window
+    private GitViewModel? model;
+    private bool committing;
+
+    public CommitWindow()
     {
-        private GitViewModel? model;
-        private bool committing;
+        this.InitializeComponent();
+        this.CommitMessageBox.GetObservable(TextBox.TextProperty).Subscribe(this.OnCommitMessageChanged);
 
-        public CommitWindow()
+        var settings = Settings.CommitWindow;
+        if (settings.MainRowDefinitions != null && settings.MainRowDefinitions.Length == this.MainGrid.RowDefinitions.Count)
         {
-            InitializeComponent();
-            this.CommitMessageBox.GetObservable(TextBox.TextProperty).Subscribe(this.OnCommitMessageChanged);
-
-            var settings = Settings.CommitWindow;
-            if (settings.MainRowDefinitions != null && settings.MainRowDefinitions.Length == this.MainGrid.RowDefinitions.Count)
+            for (var i = 0; i < settings.MainRowDefinitions.Length; i++)
             {
-                for (var i = 0; i < settings.MainRowDefinitions.Length; i++)
-                {
-                    // Skip absolute because those are hard coded as designed.
-                    if (!this.MainGrid.RowDefinitions[i].Height.IsStar)
-                        continue;
+                // Skip absolute because those are hard coded as designed.
+                if (!this.MainGrid.RowDefinitions[i].Height.IsStar)
+                    continue;
 
-                    this.MainGrid.RowDefinitions[i].Height = GridLength.Parse(settings.MainRowDefinitions[i]);
-                }
+                this.MainGrid.RowDefinitions[i].Height = GridLength.Parse(settings.MainRowDefinitions[i]);
             }
-
-            if (settings.Bounds != null)
-            {
-                var bounds = settings.Bounds.Value;
-                this.WindowStartupLocation = WindowStartupLocation.Manual;
-                this.Position = PixelPoint.FromPoint(new Point(bounds.X, bounds.Y), 1);
-                this.Width = bounds.Width;
-                this.Height = bounds.Height;
-            }
-
-            if (settings.StatusColumnWidths != null)
-            {
-                this.StatusPanel.SetColumnWidths(settings.StatusColumnWidths);
-            }
-
-            if (settings.Maximized)
-            {
-                this.WindowState = WindowState.Maximized;
-            }
-
-            this.BranchText = this.FindControl<TextBlock>(nameof(this.BranchText));
-            this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
         }
 
-        protected override void OnDataContextChanged(EventArgs e)
+        if (settings.Bounds != null)
         {
-            base.OnDataContextChanged(e);
+            var bounds = settings.Bounds.Value;
+            this.WindowStartupLocation = WindowStartupLocation.Manual;
+            this.Position = PixelPoint.FromPoint(new Point(bounds.X, bounds.Y), 1);
+            this.Width = bounds.Width;
+            this.Height = bounds.Height;
+        }
 
-            this.model = this.DataContext as GitViewModel;
-            this.Title = this.model?.Repository.WorkingDirectory() ?? this.Title;
+        if (settings.StatusColumnWidths != null)
+        {
+            this.StatusPanel.SetColumnWidths(settings.StatusColumnWidths);
+        }
+
+        if (settings.Maximized)
+        {
+            this.WindowState = WindowState.Maximized;
+        }
+
+        this.BranchText = this.FindControl<TextBlock>(nameof(this.BranchText));
+        this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
+    }
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+
+        this.model = this.DataContext as GitViewModel;
+        this.Title = this.model?.Repository.WorkingDirectory() ?? this.Title;
+        this.Refresh();
+    }
+
+    private void Cancel_OnClick(object? sender, RoutedEventArgs e)
+    {
+        this.Close();
+    }
+
+    private void Refresh()
+    {
+        this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.F5
+            || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
+        {
             this.Refresh();
         }
 
-        private void Cancel_OnClick(object? sender, RoutedEventArgs e)
-        {
+        if (e.Key == Key.Escape)
             this.Close();
-        }
+    }
 
-        private void Refresh()
-        {
-            this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
-        }
+    private void OnAmendCommitChecked(object? sender, RoutedEventArgs e)
+    {
+        if (this.model == null)
+            return;
 
-        private void OnKeyDown(object? sender, KeyEventArgs e)
+        var repo = this.model.Repository;
+        var isChecked = this.AmendCommitCheckbox.IsChecked ?? false;
+        var firstCommit = repo.Head.Commits.FirstOrDefault();
+        var log = firstCommit?.Message;
+        if (log != null)
         {
-            if (e.Key == Key.F5
-                || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Control))
-                || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
+            var text = this.CommitMessageBox.Text;
+            if (isChecked)
             {
-                this.Refresh();
+                if (string.IsNullOrWhiteSpace(text))
+                    this.CommitMessageBox.Text = log;
             }
-
-            if (e.Key == Key.Escape)
-                this.Close();
-        }
-
-        private void OnAmendCommitChecked(object? sender, RoutedEventArgs e)
-        {
-            if (this.model == null)
-                return;
-
-            var repo = this.model.Repository;
-            var isChecked = this.AmendCommitCheckbox.IsChecked ?? false;
-            var firstCommit = repo.Head.Commits.FirstOrDefault();
-            var log = firstCommit?.Message;
-            if (log != null)
+            else
             {
-                var text = this.CommitMessageBox.Text;
-                if (isChecked)
-                {
-                    if (string.IsNullOrWhiteSpace(text))
-                        this.CommitMessageBox.Text = log;
-                }
-                else
-                {
-                    if (text == log)
-                        this.CommitMessageBox.Text = "";
-                }
+                if (text == log)
+                    this.CommitMessageBox.Text = string.Empty;
             }
         }
+    }
 
-        private void OnCommitMessageChanged(string text)
+    private void OnCommitMessageChanged(string text)
+    {
+        this.CommitButton.IsEnabled = !string.IsNullOrWhiteSpace(text);
+    }
+
+    private async void Commit_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (this.model == null || this.committing)
+            return;
+
+        this.committing = true;
+        var repo = this.model.Repository;
+        var message = this.CommitMessageBox.Text;
+        var amendCommit = this.AmendCommitCheckbox.IsChecked ?? false;
+        var error = await repo.Commit(message, amendCommit);
+        this.committing = false;
+
+        if (error != null)
         {
-            this.CommitButton.IsEnabled = !string.IsNullOrWhiteSpace(text);
+            // Need to make a message box here.
+            throw new NotImplementedException(error);
         }
 
-        private async void Commit_OnClick(object? sender, RoutedEventArgs e)
-        {
-            if (this.model == null || committing)
-                return;
+        this.Close();
+    }
 
-            this.committing = true;
-            var repo = this.model.Repository;
-            var message = this.CommitMessageBox.Text;
-            var amendCommit = this.AmendCommitCheckbox.IsChecked ?? false;
-            var error = await repo.Commit(message, amendCommit);
-            this.committing = false;
-
-            if (error != null)
-            {
-                // Need to make a message box here.
-                throw new NotImplementedException(error);
-            }
-
-            this.Close();
-        }
-
-        private void OnClosing(object? sender, CancelEventArgs e)
-        {
-            var settings = Settings.CommitWindow;
-            settings.Maximized = this.WindowState == WindowState.Maximized;
-            if (!settings.Maximized)
-                settings.Bounds = new Rect(this.Position.X, this.Position.Y, this.Bounds.Width, this.Bounds.Height);
-            settings.MainRowDefinitions = this.MainGrid.RowDefinitions.Select(r => r.Height.ToString()).ToArray();
-            settings.StatusColumnWidths = this.StatusPanel.GetColumnWidths().ToArray();
-        }
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        var settings = Settings.CommitWindow;
+        settings.Maximized = this.WindowState == WindowState.Maximized;
+        if (!settings.Maximized)
+            settings.Bounds = new Rect(this.Position.X, this.Position.Y, this.Bounds.Width, this.Bounds.Height);
+        settings.MainRowDefinitions = this.MainGrid.RowDefinitions.Select(r => r.Height.ToString()).ToArray();
+        settings.StatusColumnWidths = this.StatusPanel.GetColumnWidths().ToArray();
     }
 }

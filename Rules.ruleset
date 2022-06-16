@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Rules for StyleCop.Analyzers" Description="Code analysis rules." ToolsVersion="14.0">
+    <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+        <Rule Id="SA0001" Action="Hidden"/> <!-- XML comment analysis is disabled due to project. -->
+        <Rule Id="SA1000" Action="Hidden"/> <!-- new keyword should be followed by a space. -->
+        <Rule Id="SA1009" Action="Hidden"/> <!-- Bug in style cop for parenthesis must be followed by whitespace and nullable. `) !` -->
+        <Rule Id="SA1011" Action="Hidden"/> <!-- Bug in style cop for square brackets must be followed by whitespace and nullable. `] !` -->
+        <Rule Id="SA1118" Action="Hidden"/> <!-- Parameter cannot span multiple lines. -->
+        <Rule Id="SA1124" Action="Hidden"/> <!-- Do not use regions. -->
+        <Rule Id="SA1201" Action="Hidden"/> <!-- Constructor should not follow a method. -->
+        <Rule Id="SA1202" Action="Hidden"/> <!-- 'public' members should come before 'private' members. -->
+        <Rule Id="SA1204" Action="Hidden"/> <!-- Static must come before non-static. -->
+        <Rule Id="SA1300" Action="Hidden"/> <!-- Namespace must begin with uppercase letter. rgit prevents this. -->
+        <Rule Id="SA1402" Action="Hidden"/>
+        <Rule Id="SA1403" Action="Hidden"/>
+        <Rule Id="SA1503" Action="Hidden"/> <!-- Braces should not be omitted. -->
+        <Rule Id="SA1512" Action="Hidden"/> <!-- Single line comments should not be followed by a blank line. -->
+        <Rule Id="SA1513" Action="Hidden"/> <!-- Closing brace must be followed by a blank line. -->
+        <Rule Id="SA1516" Action="Hidden"/> <!-- Elements should be separated by blank line. --> 
+        <Rule Id="SA1633" Action="Hidden"/> <!-- File must have standard license header. -->
+        <Rule Id="SA1649" Action="Hidden"/>
+    </Rules>
+
+    <Rules AnalyzerId="SonarAnalyzer.CSharp" RuleNamespace="SonarAnalyzer.CSharp">
+        <Rule Id="S101" Action="Info"/> <!-- Pascal case. Basically stuff like IABAudience is wrong. -->
+        <Rule Id="S112" Action="Hidden"/> <!-- Cannot throw System.Exception. -->
+        <Rule Id="S1104" Action="Hidden"/> <!-- Public fields should be properties. -->
+        <Rule Id="S1066" Action="Hidden"/> <!-- Merge if statements. -->
+        <Rule Id="S1128" Action="Warning"/> <!-- Unused usings. -->
+        <Rule Id="S1117" Action="Hidden"/> <!-- Cannot hide field of same name. -->
+        <Rule Id="S1199" Action="Hidden"/> <!-- Can't use nested scopes in a method. -->
+        <Rule Id="S1854" Action="Hidden"/> <!-- Remove useless assignment. -->
+        <Rule Id="S2183" Action="Hidden"/> <!-- Useless shift by 0. -->
+        <Rule Id="S3440" Action="Hidden"/> <!-- Check for identical value before assignment. -->
+        <Rule Id="S4457" Action="Hidden"/> <!-- Split parameter check and handling into separate tasks. -->
+    </Rules>
+</RuleSet>

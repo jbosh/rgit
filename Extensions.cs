@@ -16,7 +16,7 @@ public static class Extensions
     {
         var x = a.X - b.X;
         var y = a.Y - b.Y;
-        return Math.Sqrt(x * x + y * y);
+        return Math.Sqrt((x * x) + (y * y));
     }
 
     public static string WorkingDirectory(this LibGit2Sharp.Repository repo) => repo.Info.WorkingDirectory;

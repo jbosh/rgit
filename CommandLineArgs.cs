@@ -1,11 +1,7 @@
-﻿using LibGit2Sharp;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using Avalonia.Media;
-using Microsoft.AspNetCore.Identity;
-using ReactiveUI;
+using LibGit2Sharp;
 
 namespace rgit;
 
@@ -26,13 +22,13 @@ public class CommandLineArgs
 
     public class LogArgs
     {
-        public string? Branch;
-        public string? Path;
+        public string? Branch { get; set; }
+        public string? Path { get; set; }
     }
 
     public class StatusArgs
     {
-        public string? Path;
+        public string? Path { get; set; }
     }
 
     private CommandLineArgs(LaunchCommand command, Repository repository)
@@ -62,7 +58,7 @@ public class CommandLineArgs
                 case LaunchCommand.Commit:
                 {
                     stream.WriteLine($"rgit commit");
-                    stream.WriteLine("");
+                    stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Displays commit dialog.");
                     break;
@@ -70,7 +66,7 @@ public class CommandLineArgs
                 case LaunchCommand.Difftool:
                 {
                     stream.WriteLine($"rgit difftool");
-                    stream.WriteLine("");
+                    stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Similar to git difftool except it launches them all simultaneously.");
                     break;
@@ -78,7 +74,7 @@ public class CommandLineArgs
                 case LaunchCommand.Log:
                 {
                     stream.WriteLine($"rgit log [<branch>] [[--] [<path>]]");
-                    stream.WriteLine("");
+                    stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Shows the commit logs.");
                     stream.WriteLine();
@@ -88,7 +84,7 @@ public class CommandLineArgs
                 case LaunchCommand.Status:
                 {
                     stream.WriteLine($"rgit status [<path>]");
-                    stream.WriteLine("");
+                    stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Displays working changes compared to HEAD.");
                     stream.WriteLine();
@@ -180,7 +176,7 @@ public class CommandLineArgs
 
                 if (directorySpec != null)
                     statusArgs.Path = directorySpec;
-                
+
                 if (args.Length > 0)
                 {
                     var pathString = args[0];

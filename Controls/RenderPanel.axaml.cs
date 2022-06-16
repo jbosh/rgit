@@ -18,7 +18,7 @@ public partial class RenderPanel : UserControl
 
     public RenderPanel()
     {
-        InitializeComponent();
+        this.InitializeComponent();
         this.drawOp = new CustomDrawOp(this);
     }
 
@@ -35,7 +35,7 @@ public partial class RenderPanel : UserControl
         context.Custom(this.drawOp);
     }
 
-    private class CustomDrawOp : ICustomDrawOperation
+    private sealed class CustomDrawOp : ICustomDrawOperation
     {
         private readonly RenderPanel parent;
 
@@ -48,8 +48,8 @@ public partial class RenderPanel : UserControl
         {
             if (context is not ISkiaDrawingContextImpl skiaContext)
                 throw new NotImplementedException("Non skia not implemented.");
-            
-            parent.OnRender?.Invoke(skiaContext);
+
+            this.parent.OnRender?.Invoke(skiaContext);
         }
 
         public Rect Bounds { get; set; }
@@ -59,6 +59,7 @@ public partial class RenderPanel : UserControl
         public void Dispose()
         {
             // Nothing to do.
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -3,15 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Security;
 using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
+using Avalonia.Markup.Xaml;
 using LibGit2Sharp;
-using ReactiveUI;
 using SkiaSharp;
 
 namespace rgit.Controls;
@@ -24,11 +22,7 @@ public partial class LogPanel : UserControl
     public Repository? Repository
     {
         get => this.repository;
-        set
-        {
-            this.SetAndRaise(RepositoryProperty, ref this.repository, value);
-            this.Refresh();
-        }
+        set => this.SetAndRaise(RepositoryProperty, ref this.repository, value);
     }
 
     private Repository? repository;
@@ -45,27 +39,25 @@ public partial class LogPanel : UserControl
 
     public LogPanel()
     {
-        InitializeComponent();
+        this.InitializeComponent();
 
         this.contextMenuItems = new[]
         {
             new ContextMenuItem
             {
                 Text = "Compare with working tree",
-                //Image = Images["search"],
                 OnClick = (i) => throw new NotImplementedException(),
             },
             new ContextMenuItem
             {
                 Text = "Copy SHA",
-                //Image = Images["search"],
                 OnClick = this.CopyShaToClipboard,
             },
         };
 
         this.ListView.Model = this.Model;
-        this.Model.OnSelectionChanged += OnSelectionChangedCallback;
-        this.Model.OnContextMenu += OnContextMenu;
+        this.Model.OnSelectionChanged += this.OnSelectionChangedCallback;
+        this.Model.OnContextMenu += this.OnContextMenu;
     }
 
     private void OnSelectionChangedCallback()
@@ -79,7 +71,7 @@ public partial class LogPanel : UserControl
                 break;
             }
         }
-        
+
         this.OnSelectionChanged?.Invoke(selected);
     }
 
@@ -111,11 +103,11 @@ public partial class LogPanel : UserControl
         base.OnPropertyChanged(change);
         if (ReferenceEquals(change.Property, RepositoryProperty))
         {
-            this.Refresh();
+            _ = this.Refresh();
         }
     }
 
-    public async void Refresh()
+    public async Task Refresh()
     {
         if (this.repository == null)
             return;
@@ -136,7 +128,7 @@ public partial class LogPanel : UserControl
         }
 
         var branch = this.Branch == null ? this.repository.Head : this.repository.Branches[this.Branch];
-        var newItems = await Task.Run(() => GetPreparedRows(branch));
+        var newItems = await Task.Run(() => this.GetPreparedRows(branch));
 
         this.Model.BeginUpdate();
         this.Model.Items = newItems;
@@ -188,24 +180,21 @@ public partial class LogPanel : UserControl
                 }
                 else
                 {
-                    var add = true;
-
-                    if (add)
+                    anyItemsAdded = true;
+#pragma warning disable S2583 // Expression is always false
+                    if (separatorAdded)
+#pragma warning restore S2583
                     {
-                        anyItemsAdded = true;
-                        if (separatorAdded)
-                        {
-                            separatorAdded = false;
-                            menuItems.Add(new MenuItem { Header = "-" });
-                        }
-
-                        var newMenuItem = new MenuItem
-                        {
-                            Header = menuItem.Text,
-                        };
-                        newMenuItem.PointerPressed += (_o, _e) => menuItem.OnClick(selectedItems);
-                        menuItems.Add(newMenuItem);
+                        separatorAdded = false;
+                        menuItems.Add(new MenuItem { Header = "-" });
                     }
+
+                    var newMenuItem = new MenuItem
+                    {
+                        Header = menuItem.Text,
+                    };
+                    newMenuItem.PointerPressed += (_, _) => menuItem.OnClick(selectedItems);
+                    menuItems.Add(newMenuItem);
                 }
             }
 
@@ -225,7 +214,7 @@ public partial class LogPanel : UserControl
         }
     }
 
-    private async void CopyShaToClipboard(GitLogRow[] items)
+    private async Task CopyShaToClipboard(GitLogRow[] items)
     {
         var data = string.Join('\n', items.Select(i => i.Sha));
         if (Application.Current?.Clipboard != null)
@@ -277,7 +266,7 @@ public partial class LogPanel : UserControl
         /// </summary>
         public string Text { get; init; }
 
-        public delegate void OnClickDelegate(GitLogRow[] items);
+        public delegate Task OnClickDelegate(GitLogRow[] items);
 
         public OnClickDelegate OnClick { get; init; }
     }
@@ -286,8 +275,8 @@ public partial class LogPanel : UserControl
     {
         private const int BranchWidth = 20;
         private const float BranchCircleRadius = 4f;
-        
-        public override int RowCount => Items.Length;
+
+        public override int RowCount => this.Items.Length;
         public GitLogRow[] Items { get; set; } = Array.Empty<GitLogRow>();
 
         private static readonly SKColor[] GraphColors =
@@ -339,9 +328,9 @@ public partial class LogPanel : UserControl
             }
 
             var left = 0.0f;
-            for (var col = 0; col < Columns.Count; col++)
+            for (var col = 0; col < this.Columns.Count; col++)
             {
-                var column = Columns[col];
+                var column = this.Columns[col];
                 var text = this.GetCellValue(rowIndex, col);
                 var right = left + column.Width;
                 canvas.Save();
@@ -349,12 +338,12 @@ public partial class LogPanel : UserControl
 
                 if (col == 0)
                 {
-                    var x = left + node.Column * BranchWidth + BranchWidth / 2.0f;
+                    var x = left + (node.Column * BranchWidth) + (BranchWidth / 2.0f);
                     var midHeight = bounds.Height / 2.0f;
                     var midY = bounds.Top + midHeight;
                     var top = bounds.Top;
                     var bottom = bounds.Bottom;
-                    var BranchCurveWidth = MathF.Round(midHeight * 2);
+                    var branchCurveWidth = MathF.Round(midHeight * 2);
 
                     // Draw lines to children. Only draw if we have multiple children otherwise the child will draw these curves.
                     if (node.Children.Length >= 2)
@@ -362,8 +351,7 @@ public partial class LogPanel : UserControl
                         foreach (var child in node.Children)
                         {
                             var childStroke = GetStrokePaint(child.Column);
-                            var stroke = GetStrokePaint(node.Column);
-                            var childX = bounds.Left + child.Column * BranchWidth + BranchWidth / 2.0f;
+                            var childX = bounds.Left + (child.Column * BranchWidth) + (BranchWidth / 2.0f);
 
                             var drawLine = false;
                             if (child.Column == node.Column || node.Row + 1 == child.Row)
@@ -391,13 +379,13 @@ public partial class LogPanel : UserControl
                             }
                             else if (child.Column < node.Column)
                             {
-                                canvas.DrawLine(x, midY, childX + BranchCurveWidth / 2.0f, midY, childStroke);
-                                canvas.DrawArc(SKRect.Create(childX, top - BranchCurveWidth / 2.0f, BranchCurveWidth, BranchCurveWidth), 90, 90, false, childStroke);
+                                canvas.DrawLine(x, midY, childX + (branchCurveWidth / 2.0f), midY, childStroke);
+                                canvas.DrawArc(SKRect.Create(childX, top - (branchCurveWidth / 2.0f), branchCurveWidth, branchCurveWidth), 90, 90, false, childStroke);
                             }
                             else
                             {
-                                canvas.DrawLine(x, midY, childX - BranchCurveWidth / 2.0f, midY, childStroke);
-                                canvas.DrawArc(SKRect.Create(childX - BranchCurveWidth, top - BranchCurveWidth / 2.0f, BranchCurveWidth, BranchCurveWidth), 0, 90, false, childStroke);
+                                canvas.DrawLine(x, midY, childX - (branchCurveWidth / 2.0f), midY, childStroke);
+                                canvas.DrawArc(SKRect.Create(childX - branchCurveWidth, top - (branchCurveWidth / 2.0f), branchCurveWidth, branchCurveWidth), 0, 90, false, childStroke);
                             }
                         }
                     }
@@ -414,7 +402,7 @@ public partial class LogPanel : UserControl
                     // draw running lines
                     foreach (var lineIndex in node.Lines)
                     {
-                        var childX = bounds.Left + lineIndex * BranchWidth + BranchWidth / 2.0f;
+                        var childX = bounds.Left + (lineIndex * BranchWidth) + (BranchWidth / 2.0f);
                         var paint = GetGraphPaint(lineIndex);
                         canvas.DrawLine(childX, top, childX, bottom, paint);
                     }
@@ -427,7 +415,7 @@ public partial class LogPanel : UserControl
                         if (parent == null)
                             return;
 
-                        var parentX = bounds.Left + parent.Column * BranchWidth + BranchWidth / 2.0f;
+                        var parentX = (bounds.Left + (parent.Column * BranchWidth)) + (BranchWidth / 2.0f);
                         var stroke = GetStrokePaint(parent.Column);
 
                         // Draw line if same column
@@ -464,23 +452,21 @@ public partial class LogPanel : UserControl
                         {
                             if (parent.Column < node.Column)
                             {
-                                canvas.DrawArc(SKRect.Create(parentX, top + BranchCurveWidth / 2.0f, BranchCurveWidth, BranchCurveWidth), 180, 90, false, stroke);
-                                canvas.DrawLine(parentX + BranchCurveWidth / 2.0f, midY, x, midY, stroke);
+                                canvas.DrawArc(SKRect.Create(parentX, top + (branchCurveWidth / 2.0f), branchCurveWidth, branchCurveWidth), 180, 90, false, stroke);
+                                canvas.DrawLine(parentX + (branchCurveWidth / 2.0f), midY, x, midY, stroke);
                             }
                             else
                             {
-                                canvas.DrawArc(SKRect.Create(parentX - BranchCurveWidth, top + BranchCurveWidth / 2.0f, BranchCurveWidth, BranchCurveWidth), 270, 90, false, stroke);
-                                canvas.DrawLine(parentX - BranchCurveWidth / 2.0f, midY, x, midY, stroke);
+                                canvas.DrawArc(SKRect.Create(parentX - branchCurveWidth, top + (branchCurveWidth / 2.0f), branchCurveWidth, branchCurveWidth), 270, 90, false, stroke);
+                                canvas.DrawLine(parentX - (branchCurveWidth / 2.0f), midY, x, midY, stroke);
                             }
                         }
                     }
                 }
-
                 else
                 {
                     canvas.DrawText(text, left + RowTextPadding, bounds.Top + this.ListView.DefaultFont.Size, this.ListView.DefaultFont, this.ListView.DefaultFontPaint);
                 }
-
 
                 canvas.Restore();
                 left += column.Width;

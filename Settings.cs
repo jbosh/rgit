@@ -20,26 +20,26 @@ public static class Settings
 
     public class _CommitWindowSettings
     {
-        public Rect? Bounds;
-        public bool Maximized;
-        public string[]? MainRowDefinitions;
-        public int[]? StatusColumnWidths;
+        public Rect? Bounds { get; set; }
+        public bool Maximized { get; set; }
+        public string[]? MainRowDefinitions { get; set; }
+        public int[]? StatusColumnWidths { get; set; }
     }
 
     public class _StatusWindowSettings
     {
-        public Rect? Bounds;
-        public bool Maximized;
-        public int[]? StatusColumnWidths;
+        public Rect? Bounds { get; set; }
+        public bool Maximized { get; set; }
+        public int[]? StatusColumnWidths { get; set; }
     }
 
     public class _LogWindowSettings
     {
-        public Rect? Bounds;
-        public bool Maximized;
-        public string[]? MainRowDefinitions;
-        public int[]? StatusColumnWidths;
-        public int[]? LogColumnWidths;
+        public Rect? Bounds { get; set; }
+        public bool Maximized { get; set; }
+        public string[]? MainRowDefinitions { get; set; }
+        public int[]? StatusColumnWidths { get; set; }
+        public int[]? LogColumnWidths { get; set; }
     }
 
     public class _DiffSettings
@@ -51,23 +51,25 @@ public static class Settings
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return new[] { @"C:\Program Files\Beyond Compare 4\BComp.exe" };
-            
+
             return new[] { "bcomp" };
         }
 
-        public string[] Command = BCompare().Concat(new[] { "%base", "%mine", "-title1=%bname", "-title2=%yname" }).ToArray();
-        public string LeftReadOnly = "-leftreadonly";
-        public string RightReadOnly = "-rightreadonly";
-        public Dictionary<string, string> Environment = new();
+        public string[] Command { get; set; } = BCompare().Concat(new[] { "%base", "%mine", "-title1=%bname", "-title2=%yname" }).ToArray();
+        public string LeftReadOnly { get; set; } = "-leftreadonly";
+        public string RightReadOnly { get; set; } = "-rightreadonly";
+        public Dictionary<string, string> Environment { get; set; } = new();
     }
-    
+
     public static string GetGlobalSettingsDir() => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "rgit");
     public static string GetGlobalSettingsPath() => Path.Combine(GetGlobalSettingsDir(), "settings.json");
 
-    public static _CommitWindowSettings CommitWindow = new();
-    public static _LogWindowSettings LogWindow = new();
-    public static _StatusWindowSettings StatusWindow = new();
-    public static _DiffSettings Diff = new();
+#pragma warning disable SA1401
+    public static _CommitWindowSettings CommitWindow { get; } = new();
+    public static _LogWindowSettings LogWindow { get; } = new();
+    public static _StatusWindowSettings StatusWindow { get; } = new();
+    public static _DiffSettings Diff { get; } = new();
+#pragma warning restore
 
     private static Rect DeserializeRect(JToken json)
     {
@@ -75,7 +77,7 @@ public static class Settings
         var y = (int)json["y"]!;
         var w = (int)json["w"]!;
         var h = (int)json["h"]!;
-        
+
         var rect = new Rect(x, y, w, h);
         return rect;
     }
@@ -122,7 +124,7 @@ public static class Settings
                 CommitWindow.StatusColumnWidths = array.Select(j => (int)j).ToArray();
             }
         }
-        
+
         var log = json["log"];
         if (log != null)
         {
@@ -137,6 +139,7 @@ public static class Settings
                 var array = (JArray)log["statusColumns"]!;
                 LogWindow.StatusColumnWidths = array.Select(j => (int)j).ToArray();
             }
+
             if ((value = log["logColumns"]) != null)
             {
                 var array = (JArray)log["logColumns"]!;
@@ -176,7 +179,7 @@ public static class Settings
     private static void SaveGlobalSettings()
     {
         var settingsPath = GetGlobalSettingsPath();
-        var originalFile = "";
+        var originalFile = string.Empty;
         var json = new JObject();
         if (File.Exists(settingsPath))
         {

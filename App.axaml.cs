@@ -6,36 +6,35 @@ using LibGit2Sharp;
 using rgit.ViewModels;
 using rgit.Views;
 
-namespace rgit
+namespace rgit;
+
+public class App : Application
 {
-    public class App : Application
+    public Repository? Repository { get; set; }
+    public LaunchCommand LaunchCommand { get; set; }
+    public CommandLineArgs? Args { get; set; }
+
+    public override void Initialize()
     {
-        public Repository? Repository { get; set; }
-        public LaunchCommand LaunchCommand { get; set; }
-        public CommandLineArgs? Args { get; set; }
+        AvaloniaXamlLoader.Load(this);
+    }
 
-        public override void Initialize()
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            AvaloniaXamlLoader.Load(this);
-        }
-
-        public override void OnFrameworkInitializationCompleted()
-        {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            if (this.Repository == null)
+                throw new Exception($"Need to set {nameof(this.Repository)} before initialization.");
+            var model = new GitViewModel(this.Repository);
+            desktop.MainWindow = this.LaunchCommand switch
             {
-                if (this.Repository == null)
-                    throw new Exception($"Need to set {nameof(Repository)} before initialization.");
-                var model = new GitViewModel(this.Repository);
-                desktop.MainWindow = this.LaunchCommand switch
-                {
-                    LaunchCommand.Commit => new CommitWindow { DataContext = model },
-                    LaunchCommand.Log => new LogWindow(this.Args?.Log) { DataContext = model },
-                    LaunchCommand.Status => new StatusWindow(this.Args?.Status) { DataContext = model },
-                    _ => throw new ArgumentOutOfRangeException(),
-                };
-            }
-
-            base.OnFrameworkInitializationCompleted();
+                LaunchCommand.Commit => new CommitWindow { DataContext = model },
+                LaunchCommand.Log => new LogWindow(this.Args?.Log) { DataContext = model },
+                LaunchCommand.Status => new StatusWindow(this.Args?.Status) { DataContext = model },
+                _ => throw new Exception($"Need to implement {this.LaunchCommand}."),
+            };
         }
+
+        base.OnFrameworkInitializationCompleted();
     }
 }

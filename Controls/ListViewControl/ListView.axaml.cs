@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia;
-using Avalonia.Input;
 using Avalonia.Skia;
 using SkiaSharp;
 
@@ -18,19 +18,19 @@ public partial class ListView : UserControl, IDisposable
     public const int HeadingHeight = RowHeight + HeadingPaddingY;
     public const int LineHeight = 14;
     public const int RowPadding = 4;
-    public const int RowHeight = LineHeight + 2 * RowPadding;
+    public const int RowHeight = LineHeight + (2 * RowPadding);
     public const int ColumnResizeWidth = 6;
 
-    public SKFont DefaultFont;
-    public SKFont DefaultHeadingFont;
-    public SKPaint HeadingPaint;
-    public SKPaint DefaultFontPaint;
-    public SKPaint HeadingSortLinePaint;
-    public SKPaint HoveredPaint;
-    public SKPaint BackgroundPaint;
-    public SKPaint SelectedBackgroundPaint;
-    public SKPaint ColumnSeparatorPaint;
-    public Cursor ColumnResizingCursor;
+    public SKFont DefaultFont { get; }
+    public SKFont DefaultHeadingFont { get; }
+    public SKPaint HeadingPaint { get; }
+    public SKPaint DefaultFontPaint { get; }
+    public SKPaint HeadingSortLinePaint { get; }
+    public SKPaint HoveredPaint { get; }
+    public SKPaint BackgroundPaint { get; }
+    public SKPaint SelectedBackgroundPaint { get; }
+    public SKPaint ColumnSeparatorPaint { get; }
+    public Cursor ColumnResizingCursor { get; }
 
     public static readonly DirectProperty<ListView, ListViewModel?> ModelProperty =
         AvaloniaProperty.RegisterDirect<ListView, ListViewModel?>(nameof(Model), o => o.Model, (o, v) => o.Model = v);
@@ -73,21 +73,19 @@ public partial class ListView : UserControl, IDisposable
     {
         this.InitializeComponent();
 
-        this.DefaultFont = new(SKFontManager.Default.MatchFamily(FontManager.Current.DefaultFontFamilyName), (float)FontSize);
-        this.DefaultHeadingFont = new(SKFontManager.Default.MatchFamily(FontManager.Current.DefaultFontFamilyName, SKFontStyle.Bold), (float)FontSize);
+        this.DefaultFont = new(SKFontManager.Default.MatchFamily(FontManager.Current.DefaultFontFamilyName), (float)this.FontSize);
+        this.DefaultHeadingFont = new(SKFontManager.Default.MatchFamily(FontManager.Current.DefaultFontFamilyName, SKFontStyle.Bold), (float)this.FontSize);
         this.HeadingPaint = new() { Color = new SKColor(200, 200, 200) };
         this.DefaultFontPaint = new() { Color = new SKColor(200, 200, 200) };
         this.HeadingSortLinePaint = new() { Color = this.HeadingPaint.Color, StrokeWidth = 2.0f };
         this.HoveredPaint = new() { Color = new SKColor(27, 69, 89) };
         this.BackgroundPaint = new() { Color = new SKColor(0, 0, 0) };
         this.SelectedBackgroundPaint = new() { Color = new SKColor(38, 99, 128) };
-        //this.GroupHeadingBrush = new(Color.FromRgb(128, 222, 234));
-        //this.GroupHeadingPen = new(GroupHeadingBrush);
         this.ColumnSeparatorPaint = new() { Color = new SKColor(27, 46, 48), StrokeWidth = 1.0f };
         this.ColumnResizingCursor = new(StandardCursorType.SizeWestEast);
 
-        this.RenderPanel.OnRender += OnRender;
-        this.ScrollViewer.ScrollChanged += OnScrollChanged;
+        this.RenderPanel.OnRender += this.OnRender;
+        this.ScrollViewer.ScrollChanged += this.OnScrollChanged;
         this.ScrollViewer.GetObservable(BoundsProperty).Subscribe(c => this.InvalidateModel());
     }
 
@@ -127,7 +125,7 @@ public partial class ListView : UserControl, IDisposable
             return;
 
         this.Grid.MinWidth = this.Model.Columns.Sum(c => c.Width);
-        this.Grid.MinHeight = this.Model.RowCount * RowHeight // All rows
+        this.Grid.MinHeight = (this.Model.RowCount * RowHeight) // All rows
             + HeadingHeight // Add for header
             + LineHeight; // Some slop just because
 
@@ -154,7 +152,7 @@ public partial class ListView : UserControl, IDisposable
         if (model.Updating)
             return;
 
-        lock (model)
+        lock (model.SynchronizationObject)
         {
             var canvas = context.SkCanvas;
             canvas.Save();
@@ -170,7 +168,7 @@ public partial class ListView : UserControl, IDisposable
                 for (var i = 0; i < model.Columns.Count; i++)
                 {
                     left += model.Columns[i].Width;
-                    canvas.DrawLine(left, 0, left, height, ColumnSeparatorPaint);
+                    canvas.DrawLine(left, 0, left, height, this.ColumnSeparatorPaint);
                 }
             }
 
@@ -178,11 +176,11 @@ public partial class ListView : UserControl, IDisposable
             {
                 var bounds = new SKRect(0, HeadingHeight - scrollOffsetY, (float)this.RenderPanel.Bounds.Width, HeadingHeight + RowHeight);
                 var start = Math.Max(0, (int)((scrollOffsetY - HeadingHeight) / RowHeight));
-                var end = Math.Min(this.RowStates.Length, (int)((scrollOffsetY - HeadingHeight + this.RenderPanel.Bounds.Height) / RowHeight + 1));
+                var end = Math.Min(this.RowStates.Length, (int)(((scrollOffsetY - HeadingHeight + this.RenderPanel.Bounds.Height) / RowHeight) + 1));
                 for (var rowIndex = start; rowIndex < end; rowIndex++)
                 {
-                    bounds.Top = HeadingHeight + RowHeight * rowIndex - scrollOffsetY;
-                    bounds.Bottom = HeadingHeight + RowHeight * rowIndex + RowHeight - scrollOffsetY;
+                    bounds.Top = HeadingHeight + (RowHeight * rowIndex) - scrollOffsetY;
+                    bounds.Bottom = HeadingHeight + (RowHeight * rowIndex) + RowHeight - scrollOffsetY;
                     Debug.Assert(bounds.Bottom >= 0, $"{nameof(start)} was too low.");
                     Debug.Assert(bounds.Top <= this.RenderPanel.Bounds.Height, $"{nameof(end)} was too high.");
 
@@ -211,7 +209,7 @@ public partial class ListView : UserControl, IDisposable
                     var isHovered = this.mousePosition.Y - scrollOffsetY < HeadingHeight && this.mousePosition.X > left && this.mousePosition.X < right;
 
                     // Draw background always to cover rows
-                    canvas.DrawRect(left, 0, right - left, HeadingHeight, isHovered ? HoveredPaint : BackgroundPaint);
+                    canvas.DrawRect(left, 0, right - left, HeadingHeight, isHovered ? this.HoveredPaint : this.BackgroundPaint);
 
                     if (column.Sortable)
                     {
@@ -229,7 +227,7 @@ public partial class ListView : UserControl, IDisposable
                             {
                                 var a = sortPoints[i + 0];
                                 var b = sortPoints[i + 1];
-                                canvas.DrawLine(a, b, HeadingSortLinePaint);
+                                canvas.DrawLine(a, b, this.HeadingSortLinePaint);
                             }
                         }
                         else if (this.sortColumn == ~columnIndex)
@@ -246,7 +244,7 @@ public partial class ListView : UserControl, IDisposable
                             {
                                 var a = sortPoints[i + 0];
                                 var b = sortPoints[i + 1];
-                                canvas.DrawLine(a, b, HeadingSortLinePaint);
+                                canvas.DrawLine(a, b, this.HeadingSortLinePaint);
                             }
                         }
                     }
@@ -259,7 +257,7 @@ public partial class ListView : UserControl, IDisposable
                 }
 
                 // Draw extra heading so that it doesn't look weird on the right when hovered
-                canvas.DrawRect(left, 0, (float)this.RenderPanel.Bounds.Width - left, HeadingHeight, BackgroundPaint);
+                canvas.DrawRect(left, 0, (float)this.RenderPanel.Bounds.Width - left, HeadingHeight, this.BackgroundPaint);
             }
 
             canvas.Restore();
@@ -297,19 +295,19 @@ public partial class ListView : UserControl, IDisposable
                     var distance = Math.Abs(left - (int)this.mousePosition.X);
                     if (distance < ColumnResizeWidth)
                     {
-                        cursor = ColumnResizingCursor;
+                        cursor = this.ColumnResizingCursor;
                         break;
                     }
                 }
             }
-            else if (!HoverDisabled)
+            else if (!this.HoverDisabled)
             {
                 // Hovering a row
                 for (var i = 0; i < this.RowStates.Length; i++)
                 {
-                    var top = HeadingHeight + RowHeight * i;
+                    var top = HeadingHeight + (RowHeight * i);
                     var bottom = top + RowHeight;
-                    if (mousePosition.Y > bottom)
+                    if (this.mousePosition.Y > bottom)
                         continue;
 
                     this.RowStates[i] |= ListViewRowState.Hovered;
@@ -319,7 +317,7 @@ public partial class ListView : UserControl, IDisposable
         }
         else
         {
-            cursor = ColumnResizingCursor;
+            cursor = this.ColumnResizingCursor;
             var left = 0;
             for (var i = 0; i < this.resizingColumn.Value; i++)
                 left += model.Columns[i].Width;
@@ -407,13 +405,13 @@ public partial class ListView : UserControl, IDisposable
                 // Clicking a row
                 for (var rowIndex = 0; rowIndex < this.RowStates.Length; rowIndex++)
                 {
-                    var bottom = HeadingHeight + RowHeight + RowHeight * rowIndex;
-                    if (mousePosition.Y > bottom)
+                    var bottom = HeadingHeight + RowHeight + (RowHeight * rowIndex);
+                    if (this.mousePosition.Y > bottom)
                         continue;
 
                     if (rightClicked)
                     {
-                        if (RowStates.Count(i => i.HasFlag(ListViewRowState.Selected)) <= 1)
+                        if (this.RowStates.Count(i => i.HasFlag(ListViewRowState.Selected)) <= 1)
                         {
                             for (var i = 0; i < this.RowStates.Length; i++)
                                 this.RowStates[i] &= ~ListViewRowState.Selected;
@@ -433,7 +431,7 @@ public partial class ListView : UserControl, IDisposable
                         for (var i = 0; i < this.RowStates.Length; i++)
                             this.RowStates[i] &= ~ListViewRowState.Selected;
                         this.RowStates[rowIndex] |= ListViewRowState.Selected;
-                        selectedIndex = rowIndex;
+                        this.selectedIndex = rowIndex;
                         this.previousSelectionIndex = rowIndex;
                         model.InvokeOnDoubleClicked();
                     }
@@ -479,7 +477,7 @@ public partial class ListView : UserControl, IDisposable
                             this.RowStates[i] &= ~ListViewRowState.Selected;
 
                         this.RowStates[rowIndex] |= ListViewRowState.Selected;
-                        selectedIndex = rowIndex;
+                        this.selectedIndex = rowIndex;
                         this.previousSelectionIndex = rowIndex;
                     }
 
@@ -514,9 +512,8 @@ public partial class ListView : UserControl, IDisposable
         }
     }
 
-    public void Dispose()
+    protected virtual void Dispose(bool disposing)
     {
-        GC.SuppressFinalize(this);
         this.DefaultFont.Dispose();
         this.HeadingPaint.Dispose();
         this.HeadingSortLinePaint.Dispose();
@@ -525,5 +522,11 @@ public partial class ListView : UserControl, IDisposable
         this.SelectedBackgroundPaint.Dispose();
         this.ColumnSeparatorPaint.Dispose();
         this.ColumnResizingCursor.Dispose();
+    }
+
+    public void Dispose()
+    {
+        this.Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

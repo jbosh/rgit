@@ -6,22 +6,20 @@ namespace rgit;
 
 public static class TemporaryFiles
 {
-    private static readonly List<string> tempPaths = new();
+    private static readonly List<string> TempPaths = new();
 
     public static string GetFilePath()
     {
-        var path = Path.GetTempFileName();
-        var info = new FileInfo(path);
-        info.Attributes = FileAttributes.Temporary;
+        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         AddPathToDelete(path);
         return path;
     }
 
-    public static void AddPathToDelete(string path) => tempPaths.Add(path);
+    public static void AddPathToDelete(string path) => TempPaths.Add(path);
 
     public static void Cleanup()
     {
-        foreach (var path in tempPaths)
+        foreach (var path in TempPaths)
         {
             SafeDelete(path);
         }

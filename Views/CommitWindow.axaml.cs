@@ -78,6 +78,7 @@ public partial class CommitWindow : Window
     private void Refresh()
     {
         this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
+        this.StatusPanel.Refresh();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -87,6 +88,7 @@ public partial class CommitWindow : Window
             || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
         {
             this.Refresh();
+            e.Handled = true;
         }
 
         if (e.Key == Key.Escape)

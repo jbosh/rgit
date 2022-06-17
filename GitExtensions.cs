@@ -340,10 +340,16 @@ public static class GitExtensions
     public static Task UnstageFiles(this Repository repo, IEnumerable<GitStatus> files) =>
         Task.Run(() =>
         {
+            var head = repo.Head.Tip;
             foreach (var file in files)
             {
-                repo.Index.Remove(file.Path);
+                var treeEntry = head[file.Path];
+                if (treeEntry != null)
+                {
+                    repo.Index.Add((Blob)treeEntry.Target, treeEntry.Path, treeEntry.Mode);
+                }
             }
+            repo.Index.Write();
         });
 
     public static Task RevertFiles(this Repository repo, IEnumerable<GitStatus> files) =>

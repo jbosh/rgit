@@ -507,8 +507,14 @@ public partial class ListView : UserControl, IDisposable
                         this.RowStates[i] |= ListViewRowState.Selected;
                 }
                 this.model?.InvokeOnSelectionChanged();
+                e.Handled = true;
                 break;
             }
+        }
+
+        if (!e.Handled)
+        {
+            this.model?.InvokeOnKeyDown(e);
         }
     }
 

@@ -43,9 +43,11 @@ public abstract class ListViewModel
 
     public delegate void OnSelectionChangedDelegate();
     public delegate void OnDoubleClickedDelegate();
+    public delegate void OnKeyDownDelegate(KeyEventArgs e);
 
     public event OnSelectionChangedDelegate? OnSelectionChanged;
     public event OnDoubleClickedDelegate? OnDoubleClicked;
+    public event OnKeyDownDelegate? OnKeyDown;
 
     public void InvalidateVisual()
     {
@@ -99,6 +101,7 @@ public abstract class ListViewModel
     public void InvokeOnContextMenu(PointerPressedEventArgs e) => this.OnContextMenu?.Invoke(e);
     public void InvokeOnSelectionChanged() => this.OnSelectionChanged?.Invoke();
     public void InvokeOnDoubleClicked() => this.OnDoubleClicked?.Invoke();
+    public void InvokeOnKeyDown(KeyEventArgs e) => this.OnKeyDown?.Invoke(e);
 }
 
 public class ListViewColumn

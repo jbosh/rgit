@@ -137,6 +137,7 @@ public partial class StatusPanel : UserControl
         this.Model.OnContextMenu += this.OnContextMenu;
         this.Model.OnSelectionChanged += this.OnSelectionChanged;
         this.Model.OnDoubleClicked += this.OnDoubleClicked;
+        this.Model.OnKeyDown += this.OnKeyDownEvent;
         for (var i = 0; i < this.Model.Columns.Count; i++)
         {
             var sortColumn = i;
@@ -537,6 +538,22 @@ public partial class StatusPanel : UserControl
             return;
 
         _ = this.DiffFiles(selectedItems);
+    }
+
+    private void OnKeyDownEvent(KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.D:
+            {
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+                {
+                    _ = this.DiffFiles();
+                    e.Handled = true;
+                }
+                break;
+            }
+        }
     }
 
     private GitStatusRow[] GetSelectedItems()

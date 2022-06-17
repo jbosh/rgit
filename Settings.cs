@@ -24,6 +24,7 @@ public static class Settings
         public bool Maximized { get; set; }
         public string[]? MainRowDefinitions { get; set; }
         public int[]? StatusColumnWidths { get; set; }
+        public string? LastCommitMessage { get; set; }
     }
 
     public class _StatusWindowSettings
@@ -123,6 +124,8 @@ public static class Settings
                 var array = (JArray)commit["statusColumns"]!;
                 CommitWindow.StatusColumnWidths = array.Select(j => (int)j).ToArray();
             }
+            if ((value = commit["lastCommitMessage"]) != null)
+                CommitWindow.LastCommitMessage = (string)value!;
         }
 
         var log = json["log"];
@@ -195,6 +198,8 @@ public static class Settings
         if (CommitWindow.StatusColumnWidths != null)
             json["commit"]!["statusColumns"] = new JArray(CommitWindow.StatusColumnWidths);
         json["commit"]!["maximized"] = CommitWindow.Maximized;
+        if (CommitWindow.LastCommitMessage != null)
+            json["commit"]!["lastCommitMessage"] = CommitWindow.LastCommitMessage;
 
         json["log"] = new JObject();
         if (LogWindow.Bounds.HasValue)

@@ -51,6 +51,12 @@ public partial class CommitWindow : Window
             this.WindowState = WindowState.Maximized;
         }
 
+        if (settings.LastCommitMessage != null)
+        {
+            this.CommitMessageBox.Text = settings.LastCommitMessage;
+            this.OnCommitMessageChanged(this.CommitMessageBox.Text);
+        }
+
         this.BranchText = this.FindControl<TextBlock>(nameof(this.BranchText));
         this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
     }
@@ -135,6 +141,7 @@ public partial class CommitWindow : Window
             throw new NotImplementedException(error);
         }
 
+        this.CommitMessageBox.Text = string.Empty;
         this.Close();
     }
 
@@ -146,5 +153,6 @@ public partial class CommitWindow : Window
             settings.Bounds = new Rect(this.Position.X, this.Position.Y, this.Bounds.Width, this.Bounds.Height);
         settings.MainRowDefinitions = this.MainGrid.RowDefinitions.Select(r => r.Height.ToString()).ToArray();
         settings.StatusColumnWidths = this.StatusPanel.GetColumnWidths().ToArray();
+        settings.LastCommitMessage = this.CommitMessageBox.Text;
     }
 }

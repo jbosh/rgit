@@ -350,44 +350,47 @@ public partial class ListView : UserControl, IDisposable
 
         if (fixedMousePosition.Y < HeadingHeight)
         {
-            var mouseX = (int)this.mousePosition.X;
-            var left = 0;
-            for (var i = 0; i < model.Columns.Count; i++)
+            if (currentPoint.Properties.IsLeftButtonPressed)
             {
-                var right = left + model.Columns[i].Width;
-
-                // Check for resizing
-                var distance = Math.Abs(right - mouseX);
-                if (distance < ColumnResizeWidth)
+                var mouseX = (int)this.mousePosition.X;
+                var left = 0;
+                for (var i = 0; i < model.Columns.Count; i++)
                 {
-                    if (doubleClicked)
-                        throw new NotImplementedException();
+                    var right = left + model.Columns[i].Width;
 
-                    this.resizingColumn = i;
-                    break;
-                }
-
-                // Check for sort order
-                if (model.Columns[i].Sortable)
-                {
-                    if (mouseX > left && mouseX < right)
+                    // Check for resizing
+                    var distance = Math.Abs(right - mouseX);
+                    if (distance < ColumnResizeWidth)
                     {
-                        if (this.sortColumn == i || this.sortColumn == ~i)
-                        {
-                            this.sortColumn = ~this.sortColumn;
-                        }
-                        else
-                        {
-                            this.sortColumn = i;
-                        }
+                        if (doubleClicked)
+                            throw new NotImplementedException();
 
-                        var sortDirection = this.sortColumn >= 0 ? ListViewSortDirection.Ascending : ListViewSortDirection.Descending;
-                        model.Columns[i].InvokeSort(sortDirection);
+                        this.resizingColumn = i;
                         break;
                     }
-                }
 
-                left = right;
+                    // Check for sort order
+                    if (model.Columns[i].Sortable)
+                    {
+                        if (mouseX > left && mouseX < right)
+                        {
+                            if (this.sortColumn == i || this.sortColumn == ~i)
+                            {
+                                this.sortColumn = ~this.sortColumn;
+                            }
+                            else
+                            {
+                                this.sortColumn = i;
+                            }
+
+                            var sortDirection = this.sortColumn >= 0 ? ListViewSortDirection.Ascending : ListViewSortDirection.Descending;
+                            model.Columns[i].InvokeSort(sortDirection);
+                            break;
+                        }
+                    }
+
+                    left = right;
+                }
             }
         }
         else if (currentPoint.Properties.IsLeftButtonPressed || currentPoint.Properties.IsRightButtonPressed)

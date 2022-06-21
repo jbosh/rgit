@@ -36,7 +36,6 @@ public partial class ListView : UserControl, IDisposable
         AvaloniaProperty.RegisterDirect<ListView, ListViewModel?>(nameof(Model), o => o.Model, (o, v) => o.Model = v);
 
     public ListViewRowState[] RowStates { get; private set; } = Array.Empty<ListViewRowState>();
-    private int? selectedIndex;
 
     public ListViewModel? Model
     {
@@ -419,7 +418,6 @@ public partial class ListView : UserControl, IDisposable
                             for (var i = 0; i < this.RowStates.Length; i++)
                                 this.RowStates[i] &= ~ListViewRowState.Selected;
 
-                            this.selectedIndex = rowIndex;
                             this.RowStates[rowIndex] |= ListViewRowState.Selected;
                             this.previousSelectionIndex = rowIndex;
                         }
@@ -434,7 +432,6 @@ public partial class ListView : UserControl, IDisposable
                         for (var i = 0; i < this.RowStates.Length; i++)
                             this.RowStates[i] &= ~ListViewRowState.Selected;
                         this.RowStates[rowIndex] |= ListViewRowState.Selected;
-                        this.selectedIndex = rowIndex;
                         this.previousSelectionIndex = rowIndex;
                         model.InvokeOnDoubleClicked();
                     }
@@ -444,15 +441,6 @@ public partial class ListView : UserControl, IDisposable
                             this.RowStates[rowIndex] &= ~ListViewRowState.Selected;
                         else
                             this.RowStates[rowIndex] |= ListViewRowState.Selected;
-
-                        if (this.RowStates.Count(i => i.HasFlag(ListViewRowState.Selected)) == 1)
-                        {
-                            this.selectedIndex = rowIndex;
-                        }
-                        else
-                        {
-                            this.selectedIndex = null;
-                        }
 
                         this.previousSelectionIndex = rowIndex;
                     }
@@ -480,7 +468,6 @@ public partial class ListView : UserControl, IDisposable
                             this.RowStates[i] &= ~ListViewRowState.Selected;
 
                         this.RowStates[rowIndex] |= ListViewRowState.Selected;
-                        this.selectedIndex = rowIndex;
                         this.previousSelectionIndex = rowIndex;
                     }
 

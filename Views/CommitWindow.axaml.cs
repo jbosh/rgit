@@ -79,7 +79,7 @@ public partial class CommitWindow : Window
     private void Refresh()
     {
         this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
-        this.StatusPanel.Refresh();
+        _ = this.StatusPanel.Refresh();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

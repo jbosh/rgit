@@ -79,7 +79,7 @@ public partial class LogWindow : Window
     public void Refresh()
     {
         this.BranchText.Text = $"Branch: {this.args?.Branch ?? this.repository?.CurrentBranch()}";
-        this.StatusPanel.Refresh();
+        _ = this.StatusPanel.Refresh();
         _ = this.LogPanel.Refresh();
     }
 

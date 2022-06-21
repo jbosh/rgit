@@ -117,6 +117,7 @@ public partial class LogPanel : UserControl
             return;
 
         this.refreshing = true;
+        this.ListView.ShowProgress = true;
 
         var selected = default(string);
         for (var i = 0; i < this.ListView.RowStates.Length; i++)
@@ -130,6 +131,8 @@ public partial class LogPanel : UserControl
 
         var branch = this.Branch == null ? this.repository.Head : this.repository.Branches[this.Branch];
         var newItems = await Task.Run(() => this.GetPreparedRows(branch));
+
+        this.ListView.ShowProgress = false;
 
         this.Model.BeginUpdate();
         this.Model.Items = newItems;

@@ -54,6 +54,12 @@ public partial class ListView : UserControl, IDisposable
         }
     }
 
+    public bool ShowProgress
+    {
+        get => this.ProgressBar.IsVisible;
+        set => this.ProgressBar.IsVisible = value;
+    }
+
     private ListViewModel? model;
 
     private Point mousePosition;
@@ -96,6 +102,7 @@ public partial class ListView : UserControl, IDisposable
         this.Grid = this.FindControl<Grid>(nameof(this.Grid));
         this.Canvas = this.FindControl<Canvas>(nameof(this.Canvas));
         this.RenderPanel = this.FindControl<RenderPanel>(nameof(this.RenderPanel));
+        this.ProgressBar = this.FindControl<ProgressBar>(nameof(this.ProgressBar));
     }
 
     private void OnScrollChanged(object? sender, ScrollChangedEventArgs e)
@@ -496,6 +503,7 @@ public partial class ListView : UserControl, IDisposable
                     for (var i = 0; i < this.RowStates.Length; i++)
                         this.RowStates[i] |= ListViewRowState.Selected;
                 }
+
                 this.model?.InvokeOnSelectionChanged();
                 e.Handled = true;
                 break;

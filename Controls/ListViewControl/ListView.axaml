@@ -1,26 +1,31 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
-              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-              xmlns:rgit="clr-namespace:rgit.Controls"
-              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-              x:Class="rgit.Controls.ListView"
-              PointerLeave="OnPointerLeave"
-              PointerMoved="OnPointerMoved"
-              PointerPressed="OnPointerPressed"
-              PointerReleased="OnPointerReleased"
-              KeyDown="OnKeyDown"
-              Focusable="True"
-              Background="Transparent">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:rgit="clr-namespace:rgit.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="rgit.Controls.ListView"
+             PointerLeave="OnPointerLeave"
+             PointerMoved="OnPointerMoved"
+             PointerPressed="OnPointerPressed"
+             PointerReleased="OnPointerReleased"
+             KeyDown="OnKeyDown"
+             Focusable="True"
+             Background="Transparent">
     <ScrollViewer
         Name="ScrollViewer"
         HorizontalScrollBarVisibility="Auto"
         VerticalScrollBarVisibility="Auto">
-        <Grid Name="Grid" RowDefinitions="*" ColumnDefinitions="*">
-            <Canvas Name="Canvas">
+        <Grid Name="Grid" RowDefinitions="*, 4" ColumnDefinitions="*">
+            <Canvas Grid.Row="0" Name="Canvas">
                 <rgit:RenderPanel Name="RenderPanel">
                 </rgit:RenderPanel>
             </Canvas>
+            <ProgressBar
+                Grid.Row="1"
+                Name="ProgressBar"
+                IsIndeterminate="True">
+            </ProgressBar>
         </Grid>
     </ScrollViewer>
 </UserControl>

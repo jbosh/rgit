@@ -94,7 +94,7 @@ namespace rgit.Views
 
             this.StashButton.IsVisible = !this.StatusPanel.IsLogs;
             this.CommitButton.IsVisible = !this.StatusPanel.IsLogs;
-            this.StatusPanel.Refresh();
+            _ = this.StatusPanel.Refresh();
         }
 
         private void Ok_OnClick(object? sender, RoutedEventArgs e)

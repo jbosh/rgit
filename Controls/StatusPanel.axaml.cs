@@ -53,6 +53,7 @@ public partial class StatusPanel : UserControl
 
     private Repository? repository;
     private string[]? paths;
+    private bool refreshing;
 
     public StatusPanelModel Model { get; } = new();
 
@@ -201,11 +202,11 @@ public partial class StatusPanel : UserControl
         base.OnPropertyChanged(change);
         if (ReferenceEquals(change.Property, RepositoryProperty))
         {
-            this.Refresh();
+            _ = this.Refresh();
         }
         else if (ReferenceEquals(change.Property, PathsProperty))
         {
-            this.Refresh();
+            _ = this.Refresh();
         }
     }
 
@@ -216,17 +217,36 @@ public partial class StatusPanel : UserControl
 
         this.gitVersionBefore = versionBefore;
         this.gitVersionAfter = versionAfter;
-        this.Refresh();
+        _ = this.Refresh();
     }
 
-    public void Refresh()
+    public async Task Refresh()
     {
+        if (this.repository == null)
+            return;
+
+        if (this.refreshing)
+            return;
+
+        this.refreshing = true;
+        this.ListView.ShowProgress = true;
+
         this.stagedItems.Clear();
         this.unstagedItems.Clear();
         this.unversionedItems.Clear();
         this.diffParent0.Clear();
         this.diffParent1.Clear();
 
+        await Task.Run(this.RefreshAsync);
+
+        this.ListView.ShowProgress = false;
+
+        this.OnCollectionChanged();
+        this.refreshing = false;
+    }
+
+    private void RefreshAsync()
+    {
         if (this.repository == null)
             return;
 
@@ -387,8 +407,6 @@ public partial class StatusPanel : UserControl
                 }
             }
         }
-
-        this.OnCollectionChanged();
 
         static GitStatus GetStatus(TreeEntryChanges entry, string? branchShaBefore, string? branchShaAfter)
         {
@@ -663,7 +681,7 @@ public partial class StatusPanel : UserControl
                 await this.repository.DiffFiles(files.Select(r => r.Status!), this.gitVersionAfter);
             }
 
-            this.Refresh();
+            await this.Refresh();
         }
     }
 
@@ -691,7 +709,7 @@ public partial class StatusPanel : UserControl
                 await this.repository.DiffFiles(files.Select(r => r.Status!));
             }
 
-            this.Refresh();
+            await this.Refresh();
         }
     }
 
@@ -703,7 +721,7 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Working)), this.gitVersionBefore);
-            this.Refresh();
+            await this.Refresh();
         }
     }
 
@@ -712,10 +730,8 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.StageFiles(files.Select(r => r.Status!));
-            this.Refresh();
+            await this.Refresh();
         }
-
-        this.Refresh();
     }
 
     private async Task StageFilesWithGUI(params GitStatusRow[] files)
@@ -723,7 +739,7 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Staging)));
-            this.Refresh();
+            await this.Refresh();
         }
     }
 
@@ -732,7 +748,7 @@ public partial class StatusPanel : UserControl
         if (this.repository != null)
         {
             await this.repository.UnstageFiles(files.Select(f => f.Status!));
-            this.Refresh();
+            await this.Refresh();
         }
     }
 
@@ -761,7 +777,7 @@ public partial class StatusPanel : UserControl
             }
         }
 
-        this.Refresh();
+        await this.Refresh();
     }
 
     private async Task DeleteFiles(params GitStatusRow[] files)
@@ -801,7 +817,7 @@ public partial class StatusPanel : UserControl
             }
         }
 
-        this.Refresh();
+        await this.Refresh();
     }
 
     public class GitStatusRow

@@ -119,11 +119,15 @@ public partial class LogWindow : Window
             || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             || (e.Key == Key.R && e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
         {
+            e.Handled = true;
             this.Refresh();
         }
 
         if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
             this.Close();
+        }
     }
 
     private void OnClosing(object? sender, CancelEventArgs e)

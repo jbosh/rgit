@@ -13,6 +13,9 @@ namespace rgit.Views
     public partial class StatusWindow : Window
     {
         private GitViewModel? model;
+        private string? gitBeforeVersion;
+        private string? gitAfterVersion;
+        private bool isLogs;
 
         public StatusWindow()
             : this(null)
@@ -23,7 +26,13 @@ namespace rgit.Views
         {
             this.InitializeComponent();
 
-            var settings = Settings.StatusWindow;
+            this.isLogs = args?.BeforeVersion != null;
+            this.StatusPanel.IsLogs = this.isLogs;
+            this.StatusPanel.PathSpec = args?.Path;
+            this.gitBeforeVersion = args?.BeforeVersion;
+            this.gitAfterVersion = args?.AfterVersion;
+
+            var settings = this.isLogs ? Settings.LogsStatusWindow : Settings.StatusWindow;
             if (settings.Bounds != null)
             {
                 var bounds = settings.Bounds.Value;
@@ -45,9 +54,12 @@ namespace rgit.Views
 
             this.StatusPanel = this.FindControl<StatusPanel>(nameof(this.StatusPanel));
             this.BranchText = this.FindControl<TextBlock>(nameof(this.BranchText));
+            this.StashButton = this.FindControl<Button>(nameof(this.StashButton));
+            this.CommitButton = this.FindControl<Button>(nameof(this.CommitButton));
+            this.RefreshButton = this.FindControl<Button>(nameof(this.RefreshButton));
+            this.OkButton = this.FindControl<Button>(nameof(this.OkButton));
 
-            this.StatusPanel.PathSpec = args?.Path;
-            this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
+            this.StatusPanel.SetVersion(args?.BeforeVersion, args?.AfterVersion);
         }
 
         protected override void OnDataContextChanged(EventArgs e)
@@ -66,7 +78,17 @@ namespace rgit.Views
 
         private void Refresh()
         {
-            this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
+            if (this.StatusPanel.IsLogs)
+            {
+                this.BranchText.Text = $"Comparing: {this.gitBeforeVersion}..{this.gitAfterVersion}";
+            }
+            else
+            {
+                this.BranchText.Text = $"Branch: {this.model?.Repository.CurrentBranch()}";
+            }
+
+            this.StashButton.IsVisible = !this.StatusPanel.IsLogs;
+            this.CommitButton.IsVisible = !this.StatusPanel.IsLogs;
             this.StatusPanel.Refresh();
         }
 
@@ -100,7 +122,7 @@ namespace rgit.Views
 
         private void OnClosing(object? sender, CancelEventArgs e)
         {
-            var settings = Settings.StatusWindow;
+            var settings = this.isLogs ? Settings.LogsStatusWindow : Settings.StatusWindow;
             settings.Maximized = this.WindowState == WindowState.Maximized;
             if (!settings.Maximized)
                 settings.Bounds = new Rect(this.Position.X, this.Position.Y, this.Bounds.Width, this.Bounds.Height);

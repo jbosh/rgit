@@ -37,6 +37,8 @@ public class GitStatus
     public string StatusString => GetStatusString(this.Status);
     public StatusEntry? GitStatusEntry { get; set; }
     public TreeEntryChanges? GitTreeEntryChanges { get; set; }
+    public string? BranchShaBefore { get; set; }
+    public string? BranchShaAfter { get; set; }
     public Color Color => GetColorFromStatus(this.Status);
     public SKPaint Paint => GetPaintFromStatus(this.Status);
     public override string ToString() => $"{this.Path} ({this.StatusString})";
@@ -54,10 +56,12 @@ public class GitStatus
         this.GitStatusEntry = statusEntry;
     }
 
-    public GitStatus(string path, GitStatusString status, TreeEntryChanges treeEntryChanges)
+    public GitStatus(string path, GitStatusString status, TreeEntryChanges treeEntryChanges, string? branchShaBefore, string? branchShaAfter)
         : this(path, status)
     {
         this.GitTreeEntryChanges = treeEntryChanges;
+        this.BranchShaBefore = branchShaBefore;
+        this.BranchShaAfter = branchShaAfter;
     }
 
     private static readonly Dictionary<GitStatusString, Color> ColorsByStatus = new()

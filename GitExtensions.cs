@@ -106,15 +106,43 @@ public static class GitExtensions
                 {
                     if (gitVersion != null)
                     {
-                        var tmpFile = TemporaryFiles.GetFilePath();
-                        await repo.GetFileAtChange(tmpFile, file.Path, gitVersion);
-                        filesToDelete.Add(tmpFile);
+                        if (file.GitTreeEntryChanges != null)
+                        {
+                            // We're doing a log based diff.
+                            var entry = file.GitTreeEntryChanges;
 
-                        baseFile = tmpFile;
-                        myFile = Path.Combine(workDir, file.Path);
-                        title1 = $"{file.Path}: {gitVersion}";
-                        title2 = $"{file.Path}: Working Tree";
-                        leftReadOnly = true;
+                            var newFile = TemporaryFiles.GetFilePath();
+                            var oldFile = TemporaryFiles.GetFilePath();
+                            var newBlob = repo.Lookup<Blob>(entry.Oid);
+                            var oldBlob = repo.Lookup<Blob>(entry.OldOid);
+                            await newBlob.WriteToFile(newFile);
+                            await oldBlob.WriteToFile(oldFile);
+                            filesToDelete.Add(newFile);
+                            filesToDelete.Add(oldFile);
+
+                            baseFile = oldFile;
+                            myFile = newFile;
+                            title1 = $"{file.Path}: {file.BranchShaBefore}";
+                            if (file.BranchShaAfter == "WORKING")
+                                title2 = $"{file.Path}: Working Tree";
+                            else
+                                title2 = $"{file.Path}: {file.BranchShaAfter}";
+                            leftReadOnly = true;
+                            rightReadOnly = true;
+                        }
+                        else
+                        {
+                            // We're doing this diff against working tree.
+                            var tmpFile = TemporaryFiles.GetFilePath();
+                            await repo.GetFileAtChange(tmpFile, file.Path, gitVersion);
+                            filesToDelete.Add(tmpFile);
+
+                            baseFile = tmpFile;
+                            myFile = Path.Combine(workDir, file.Path);
+                            title1 = $"{file.Path}: {gitVersion}";
+                            title2 = $"{file.Path}: Working Tree";
+                            leftReadOnly = true;
+                        }
                     }
                     else
                     {
@@ -424,10 +452,13 @@ public static class GitExtensions
             }
         }
 
-        await using (var file = File.Open(destinationPath, FileMode.Create))
-        {
-            await blob.GetContentStream().CopyToAsync(file);
-        }
+        await blob.WriteToFile(destinationPath);
+    }
+
+    public static async Task WriteToFile(this Blob blob, string path)
+    {
+        await using var file = File.Open(path, FileMode.Create);
+        await blob.GetContentStream().CopyToAsync(file);
     }
 
     /// <summary>

@@ -58,7 +58,18 @@ public partial class StatusPanel : UserControl
 
     private string? gitVersionBefore;
     private string? gitVersionAfter;
-    public bool IsLogs { get; set; }
+    private bool isLogs;
+
+    public bool IsLogs
+    {
+        get => this.isLogs;
+        set
+        {
+            this.Model.Columns[2].Text = value ? "Action" : "Status";
+            this.isLogs = value;
+        }
+    }
+
     private int sortColumn;
 
     private static readonly SKPaint GroupHeadingPaint = new() { Color = new SKColor(128, 222, 234) };
@@ -71,13 +82,26 @@ public partial class StatusPanel : UserControl
         {
             new ContextMenuItem
             {
+                Text = "Compare revisions",
+                OnClick = this.DiffRevisions,
+                AllowStagedItems = true,
+                AllowUnstagedItems = true,
+                AllowVersioned = true,
+                AllowLogs = true,
+                LogsOnly = true,
+                VersionedOnly = true,
+                Filter = (_) => this.gitVersionAfter != null,
+            },
+            new ContextMenuItem
+            {
                 Text = "Compare with base",
-                OnClick = this.DiffFiles,
+                OnClick = this.DiffWithBase,
                 AllowStagedItems = true,
                 AllowUnstagedItems = true,
                 AllowLogs = true,
                 AllowVersioned = true,
                 AllowUnversionedItems = true,
+                Filter = (_) => this.gitVersionAfter == null,
             },
             new ContextMenuItem
             {
@@ -187,6 +211,9 @@ public partial class StatusPanel : UserControl
 
     public void SetVersion(string? versionBefore, string? versionAfter)
     {
+        if (this.gitVersionBefore == versionBefore && this.gitVersionAfter == versionAfter)
+            return;
+
         this.gitVersionBefore = versionBefore;
         this.gitVersionAfter = versionAfter;
         this.Refresh();
@@ -284,16 +311,7 @@ public partial class StatusPanel : UserControl
                         var tree = this.repository.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
                         foreach (var entry in tree)
                         {
-                            var status = entry.Status switch
-                            {
-                                ChangeKind.Added => GitStatusString.Added,
-                                ChangeKind.Deleted => GitStatusString.Deleted,
-                                ChangeKind.Modified => GitStatusString.Modified,
-                                ChangeKind.Renamed => GitStatusString.Renamed,
-                                ChangeKind.TypeChanged => GitStatusString.Modified,
-                                _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
-                            };
-                            this.diffParent0.Add(new GitStatus(entry.Path, status, entry));
+                            this.diffParent0.Add(GetStatus(entry, parent.Sha, commit.Sha));
                         }
 
                         break;
@@ -304,16 +322,7 @@ public partial class StatusPanel : UserControl
                         var tree = this.repository.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
                         foreach (var entry in tree)
                         {
-                            var status = entry.Status switch
-                            {
-                                ChangeKind.Added => GitStatusString.Added,
-                                ChangeKind.Deleted => GitStatusString.Deleted,
-                                ChangeKind.Modified => GitStatusString.Modified,
-                                ChangeKind.Renamed => GitStatusString.Renamed,
-                                ChangeKind.TypeChanged => GitStatusString.Modified,
-                                _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
-                            };
-                            this.diffParent1.Add(new GitStatus(entry.Path, status, entry));
+                            this.diffParent1.Add(GetStatus(entry, parent.Sha, commit.Sha));
                         }
 
 #pragma warning disable S907 // Cannot use goto.
@@ -328,11 +337,42 @@ public partial class StatusPanel : UserControl
             }
             else
             {
-                throw new NotImplementedException();
+                var before = this.repository.Lookup<Commit>(this.gitVersionBefore);
+                if (this.gitVersionAfter == "WORKING")
+                {
+                    var tree = this.repository.Diff.Compare<TreeChanges>(before.Tree, DiffTargets.WorkingDirectory);
+                    foreach (var entry in tree)
+                    {
+                        this.diffParent0.Add(GetStatus(entry, before.Sha, "WORKING"));
+                    }
+                }
+                else
+                {
+                    var after = this.repository.Lookup<Commit>(this.gitVersionAfter);
+                    var tree = this.repository.Diff.Compare<TreeChanges>(before.Tree, after.Tree);
+                    foreach (var entry in tree)
+                    {
+                        this.diffParent0.Add(GetStatus(entry, before.Sha, after.Sha));
+                    }
+                }
             }
         }
 
         this.OnCollectionChanged();
+
+        static GitStatus GetStatus(TreeEntryChanges entry, string? branchShaBefore, string? branchShaAfter)
+        {
+            var status = entry.Status switch
+            {
+                ChangeKind.Added => GitStatusString.Added,
+                ChangeKind.Deleted => GitStatusString.Deleted,
+                ChangeKind.Modified => GitStatusString.Modified,
+                ChangeKind.Renamed => GitStatusString.Renamed,
+                ChangeKind.TypeChanged => GitStatusString.Modified,
+                _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
+            };
+            return new GitStatus(entry.Path, status, entry, branchShaBefore, branchShaAfter);
+        }
     }
 
     private void OnCollectionChanged()
@@ -461,8 +501,12 @@ public partial class StatusPanel : UserControl
 
                         if (this.IsLogs)
                         {
-                            if (!menuItem.AllowLogs)
+                            if (!menuItem.AllowLogs && !menuItem.LogsOnly)
                                 add = false;
+                        }
+                        else if (menuItem.LogsOnly)
+                        {
+                            add = false;
                         }
                     }
 
@@ -537,7 +581,7 @@ public partial class StatusPanel : UserControl
         if (selectedItems[0].IsHeading)
             return;
 
-        _ = this.DiffFiles(selectedItems);
+        _ = this.DiffWithBase(selectedItems);
     }
 
     private void OnKeyDownEvent(KeyEventArgs e)
@@ -548,7 +592,7 @@ public partial class StatusPanel : UserControl
             {
                 if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
                 {
-                    _ = this.DiffFiles();
+                    _ = this.DiffWithBase();
                     e.Handled = true;
                 }
                 break;
@@ -572,14 +616,50 @@ public partial class StatusPanel : UserControl
         return result.ToArray();
     }
 
-    private async Task DiffFiles(params GitStatusRow[] files)
+    private async Task DiffRevisions(params GitStatusRow[] files)
     {
         if (files.Length == 0)
             files = this.GetSelectedItems();
 
         if (this.repository != null)
         {
-            await this.repository.DiffFiles(files.Select(r => r.Status!));
+            if (this.gitVersionAfter == "WORKING")
+            {
+                await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Working)), this.gitVersionBefore);
+            }
+            else
+            {
+                await this.repository.DiffFiles(files.Select(r => r.Status!), this.gitVersionAfter);
+            }
+
+            this.Refresh();
+        }
+    }
+
+    private async Task DiffWithBase(params GitStatusRow[] files)
+    {
+        if (files.Length == 0)
+            files = this.GetSelectedItems();
+
+        if (this.repository != null)
+        {
+            if (this.IsLogs)
+            {
+                if (this.gitVersionAfter == "WORKING")
+                {
+                    await this.repository.DiffFiles(files.Select(f => new GitStatus(f.Status!.Path, GitStatusString.Working)), this.gitVersionBefore);
+                }
+                else
+                {
+                    await this.repository.DiffFiles(files.Select(r => r.Status!), this.gitVersionBefore);
+                }
+            }
+            else
+            {
+                // Not logs, compare working tree with HEAD.
+                await this.repository.DiffFiles(files.Select(r => r.Status!));
+            }
+
             this.Refresh();
         }
     }
@@ -771,6 +851,11 @@ public partial class StatusPanel : UserControl
         /// Gets a value indicating whether this menu is allowed during logs.
         /// </summary>
         public bool AllowLogs { get; init; }
+
+        /// <summary>
+        /// Gets a value indicating whether this menu is only allowed during logs.
+        /// </summary>
+        public bool LogsOnly { get; init; }
 
         /// <summary>
         /// Gets the text to display.

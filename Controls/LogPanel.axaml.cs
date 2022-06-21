@@ -10,6 +10,7 @@ using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using LibGit2Sharp;
+using rgit.Views;
 using SkiaSharp;
 
 namespace rgit.Controls;
@@ -46,7 +47,7 @@ public partial class LogPanel : UserControl
             new ContextMenuItem
             {
                 Text = "Compare with working tree",
-                OnClick = (i) => throw new NotImplementedException(),
+                OnClick = this.CompareWithWorkingTree,
             },
             new ContextMenuItem
             {
@@ -212,6 +213,28 @@ public partial class LogPanel : UserControl
                 contextMenu.MenuClosed += (o, e) => this.ListView.HoverDisabled = false;
             }
         }
+    }
+
+    private Task CompareWithWorkingTree(GitLogRow[] items)
+    {
+        if (this.repository == null)
+            return Task.CompletedTask;
+
+        Debug.Assert(items.Length == 1, "Shouldn't be possible to have 0 or more than 1 item.");
+        if (items.Length == 0)
+            return Task.CompletedTask;
+
+        var item = items[0];
+        var args = new CommandLineArgs.StatusArgs()
+        {
+            BeforeVersion = item.Sha,
+            AfterVersion = "WORKING",
+        };
+
+        var window = new StatusWindow(args) { DataContext = this.DataContext };
+        window.Show();
+
+        return Task.CompletedTask;
     }
 
     private async Task CopyShaToClipboard(GitLogRow[] items)

@@ -69,6 +69,7 @@ public static class Settings
     public static _CommitWindowSettings CommitWindow { get; } = new();
     public static _LogWindowSettings LogWindow { get; } = new();
     public static _StatusWindowSettings StatusWindow { get; } = new();
+    public static _StatusWindowSettings LogsStatusWindow { get; } = new();
     public static _DiffSettings Diff { get; } = new();
 #pragma warning restore
 
@@ -164,6 +165,20 @@ public static class Settings
             }
         }
 
+        var logsStatus = json["logsStatus"];
+        if (logsStatus != null)
+        {
+            if ((value = logsStatus["bounds"]) != null)
+                LogsStatusWindow.Bounds = DeserializeRect(value);
+            if ((value = logsStatus["maximized"]) != null)
+                LogsStatusWindow.Maximized = (bool)value;
+            if ((value = logsStatus["statusColumns"]) != null)
+            {
+                var array = (JArray)logsStatus["statusColumns"]!;
+                LogsStatusWindow.StatusColumnWidths = array.Select(j => (int)j).ToArray();
+            }
+        }
+
         var diff = json["diff"];
         if (diff != null)
         {
@@ -218,6 +233,13 @@ public static class Settings
         if (StatusWindow.StatusColumnWidths != null)
             json["status"]!["statusColumns"] = new JArray(StatusWindow.StatusColumnWidths);
         json["status"]!["maximized"] = StatusWindow.Maximized;
+
+        json["logsStatus"] = new JObject();
+        if (LogsStatusWindow.Bounds.HasValue)
+            json["logsStatus"]!["bounds"] = SerializeRect(LogsStatusWindow.Bounds.Value);
+        if (LogsStatusWindow.StatusColumnWidths != null)
+            json["logsStatus"]!["statusColumns"] = new JArray(LogsStatusWindow.StatusColumnWidths);
+        json["logsStatus"]!["maximized"] = LogsStatusWindow.Maximized;
 
         json["diff"] = new JObject();
         json["diff"]!["env"] = JObject.FromObject(Diff.Environment);

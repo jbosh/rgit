@@ -105,6 +105,7 @@ public partial class LogWindow : Window
         this.model = this.DataContext as GitViewModel;
         this.repository = this.model?.Repository;
         this.Title = this.model?.Repository.WorkingDirectory() ?? this.Title;
+        this.Refresh();
     }
 
     private void Ok_OnClick(object? sender, RoutedEventArgs e)

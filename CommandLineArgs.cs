@@ -29,6 +29,8 @@ public class CommandLineArgs
     public class StatusArgs
     {
         public string? Path { get; set; }
+        public string? BeforeVersion { get; set; }
+        public string? AfterVersion { get; set; }
     }
 
     private CommandLineArgs(LaunchCommand command, Repository repository)

@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using MessageBox.Avalonia.Enums;
 using rgit.ViewModels;
 
 namespace rgit.Views;
@@ -139,8 +140,19 @@ public partial class CommitWindow : Window
 
         if (error != null)
         {
-            // Need to make a message box here.
-            throw new NotImplementedException(error);
+            var lines = error.Trim().Split('\n', '\r');
+            for (var i = lines.Length - 1; i >= 0; i--)
+            {
+                if (lines[i].Length == 0)
+                {
+                    error = string.Join('\n', lines.Skip(i + 1));
+                    break;
+                }
+            }
+
+            var messageBox = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow("Revert Files", error, ButtonEnum.Ok, MessageBox.Avalonia.Enums.Icon.Error, WindowStartupLocation.CenterOwner);
+            await messageBox.Show();
+            return;
         }
 
         this.CommitMessageBox.Text = string.Empty;

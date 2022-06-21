@@ -28,7 +28,7 @@ namespace rgit.Views
 
             this.isLogs = args?.BeforeVersion != null;
             this.StatusPanel.IsLogs = this.isLogs;
-            this.StatusPanel.PathSpec = args?.Path;
+            this.StatusPanel.Paths = args?.Paths;
             this.gitBeforeVersion = args?.BeforeVersion;
             this.gitAfterVersion = args?.AfterVersion;
 
@@ -80,7 +80,12 @@ namespace rgit.Views
         {
             if (this.StatusPanel.IsLogs)
             {
-                this.BranchText.Text = $"Comparing: {this.gitBeforeVersion}..{this.gitAfterVersion}";
+                this.BranchText.Text = this.gitAfterVersion switch
+                {
+                    "WORKING" => $"Branch: {this.gitBeforeVersion}",
+                    "STAGING" => $"Comparing: {this.gitBeforeVersion}..Staged Files",
+                    _ => $"Comparing: {this.gitBeforeVersion}..{this.gitAfterVersion}",
+                };
             }
             else
             {

@@ -31,15 +31,15 @@ public partial class StatusPanel : UserControl
         }
     }
 
-    public static readonly DirectProperty<StatusPanel, string?> PathSpecProperty =
-        AvaloniaProperty.RegisterDirect<StatusPanel, string?>(nameof(PathSpec), o => o.PathSpec, (o, v) => o.PathSpec = v);
+    public static readonly DirectProperty<StatusPanel, string[]?> PathsProperty =
+        AvaloniaProperty.RegisterDirect<StatusPanel, string[]?>(nameof(Paths), o => o.Paths, (o, v) => o.Paths = v);
 
-    public string? PathSpec
+    public string[]? Paths
     {
-        get => this.pathspec;
+        get => this.paths;
         set
         {
-            this.SetAndRaise(PathSpecProperty, ref this.pathspec, value);
+            this.SetAndRaise(PathsProperty, ref this.paths, value);
             this.OnCollectionChanged();
         }
     }
@@ -52,7 +52,7 @@ public partial class StatusPanel : UserControl
     private readonly IList<GitStatus> diffParent1 = new List<GitStatus>();
 
     private Repository? repository;
-    private string? pathspec;
+    private string[]? paths;
 
     public StatusPanelModel Model { get; } = new();
 
@@ -203,7 +203,7 @@ public partial class StatusPanel : UserControl
         {
             this.Refresh();
         }
-        else if (ReferenceEquals(change.Property, PathSpecProperty))
+        else if (ReferenceEquals(change.Property, PathsProperty))
         {
             this.Refresh();
         }
@@ -233,8 +233,8 @@ public partial class StatusPanel : UserControl
         if (!this.IsLogs)
         {
             var statusOptions = new StatusOptions();
-            if (this.pathspec != null)
-                statusOptions.PathSpec = new[] { this.pathspec };
+            if (this.paths != null)
+                statusOptions.PathSpec = this.paths;
             foreach (var item in this.repository.RetrieveStatus(statusOptions))
             {
                 switch (item.State)
@@ -337,22 +337,52 @@ public partial class StatusPanel : UserControl
             }
             else
             {
-                var before = this.repository.Lookup<Commit>(this.gitVersionBefore);
-                if (this.gitVersionAfter == "WORKING")
+                Tree? beforeTree;
+                string? beforeSha;
+                if (this.gitVersionBefore == "WORKING")
                 {
-                    var tree = this.repository.Diff.Compare<TreeChanges>(before.Tree, DiffTargets.WorkingDirectory);
-                    foreach (var entry in tree)
-                    {
-                        this.diffParent0.Add(GetStatus(entry, before.Sha, "WORKING"));
-                    }
+                    beforeTree = this.repository.Head.Tip?.Tree;
+                    beforeSha = "Working Tree";
                 }
                 else
                 {
-                    var after = this.repository.Lookup<Commit>(this.gitVersionAfter);
-                    var tree = this.repository.Diff.Compare<TreeChanges>(before.Tree, after.Tree);
-                    foreach (var entry in tree)
+                    var commit = this.repository.Lookup<Commit>(this.gitVersionBefore);
+                    beforeTree = commit?.Tree;
+                    beforeSha = commit?.Sha;
+                }
+
+                switch (this.gitVersionAfter)
+                {
+                    case "WORKING":
                     {
-                        this.diffParent0.Add(GetStatus(entry, before.Sha, after.Sha));
+                        var tree = this.repository.Diff.Compare<TreeChanges>(beforeTree, DiffTargets.WorkingDirectory);
+                        foreach (var entry in tree)
+                        {
+                            this.diffParent0.Add(GetStatus(entry, beforeSha, "WORKING"));
+                        }
+
+                        break;
+                    }
+                    case "STAGING":
+                    {
+                        var tree = this.repository.Diff.Compare<TreeChanges>(beforeTree, DiffTargets.Index);
+                        foreach (var entry in tree)
+                        {
+                            this.diffParent0.Add(GetStatus(entry, beforeSha, "STAGE"));
+                        }
+
+                        break;
+                    }
+                    default:
+                    {
+                        var after = this.repository.Lookup<Commit>(this.gitVersionAfter);
+                        var tree = this.repository.Diff.Compare<TreeChanges>(beforeTree, after.Tree);
+                        foreach (var entry in tree)
+                        {
+                            this.diffParent0.Add(GetStatus(entry, beforeSha, after.Sha));
+                        }
+
+                        break;
                     }
                 }
             }
@@ -595,6 +625,7 @@ public partial class StatusPanel : UserControl
                     _ = this.DiffWithBase();
                     e.Handled = true;
                 }
+
                 break;
             }
         }

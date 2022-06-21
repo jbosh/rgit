@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Text.RegularExpressions;
 using LibGit2Sharp;
 
 namespace rgit;
@@ -31,6 +32,8 @@ public class CommandLineArgs
         public string? Path { get; set; }
         public string? BeforeVersion { get; set; }
         public string? AfterVersion { get; set; }
+
+        public static readonly Regex MultipleCommitRegex = new Regex(@"(?<before>[a-fA-F0-9]+)\.\.(?<after>[a-fA-F0-9]+)");
     }
 
     private CommandLineArgs(LaunchCommand command, Repository repository)
@@ -166,27 +169,170 @@ public class CommandLineArgs
                 break;
             }
             case LaunchCommand.Difftool:
-            {
-                // No arguments
-                value = new CommandLineArgs(command, repo);
-
-                break;
-            }
             case LaunchCommand.Status:
             {
+                // Difftool and Status have identical arguments.
                 var statusArgs = new StatusArgs();
 
                 if (directorySpec != null)
                     statusArgs.Path = directorySpec;
 
+                switch (args.Length)
+                {
+                    case 0:
+                    {
+                        break;
+                    }
+                    case 1:
+                    {
+                        var pathOrCommitString = args[0];
+                        args = args.Slice(1);
+                        if (!string.IsNullOrWhiteSpace(pathOrCommitString))
+                        {
+                            if (StatusArgs.MultipleCommitRegex.IsMatch(pathOrCommitString))
+                            {
+                                var match = StatusArgs.MultipleCommitRegex.Match(pathOrCommitString);
+                                var commitBefore = repo.Lookup<Commit>(match.Groups["before"].Value);
+                                var commitAfter = repo.Lookup<Commit>(match.Groups["after"].Value);
+                                if (commitBefore != null && commitAfter != null)
+                                {
+                                    statusArgs.BeforeVersion = commitBefore.Sha;
+                                    statusArgs.AfterVersion = commitAfter.Sha;
+                                    pathOrCommitString = null;
+                                }
+                            }
+                            else if (repo.Lookup<Commit>(pathOrCommitString) != null)
+                            {
+                                var commit = repo.Lookup<Commit>(pathOrCommitString);
+                                statusArgs.BeforeVersion = commit.Sha;
+                                statusArgs.AfterVersion = "WORKING";
+                                pathOrCommitString = null;
+                            }
+
+                            if (pathOrCommitString != null)
+                            {
+                                if (statusArgs.Path != null)
+                                    statusArgs.Path = Path.Combine(statusArgs.Path, pathOrCommitString);
+                                else
+                                    statusArgs.Path = pathOrCommitString;
+                            }
+                        }
+
+                        break;
+                    }
+                    case 2:
+                    {
+                        var commitString = args[0];
+                        var pathString = default(string);
+                        if (args[1] != "--")
+                        {
+                            pathString = args[1];
+                        }
+
+                        args = args.Slice(2);
+
+                        if (StatusArgs.MultipleCommitRegex.IsMatch(commitString))
+                        {
+                            var match = StatusArgs.MultipleCommitRegex.Match(commitString);
+                            var commitBefore = repo.Lookup<Commit>(match.Groups["before"].Value);
+                            var commitAfter = repo.Lookup<Commit>(match.Groups["after"].Value);
+                            if (commitBefore != null && commitAfter != null)
+                            {
+                                statusArgs.BeforeVersion = commitBefore.Sha;
+                                statusArgs.AfterVersion = commitAfter.Sha;
+                                commitString = null;
+                            }
+                        }
+                        else if (repo.Lookup<Commit>(commitString) != null)
+                        {
+                            var commit = repo.Lookup<Commit>(commitString);
+                            statusArgs.BeforeVersion = commit.Sha;
+                            statusArgs.AfterVersion = "WORKING";
+                            commitString = null;
+                        }
+
+                        if (commitString != null)
+                        {
+                            Console.Error.WriteLine($"Invalid commit {commitString}.");
+                            PrintUsage(Console.Error, command);
+                            value = null;
+                            return false;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(pathString))
+                        {
+                            if (statusArgs.Path != null)
+                                statusArgs.Path = Path.Combine(statusArgs.Path, pathString);
+                            else
+                                statusArgs.Path = pathString;
+                        }
+
+                        break;
+                    }
+                    case 3:
+                    {
+                        var commitString = args[0];
+                        var dashes = args[1];
+                        var pathString = args[2];
+                        if (dashes != "--")
+                        {
+                            Console.Error.WriteLine($"Unknown argument {dashes}.");
+                            PrintUsage(Console.Error, command);
+                            value = null;
+                            return false;
+                        }
+
+                        args = args.Slice(3);
+
+                        if (StatusArgs.MultipleCommitRegex.IsMatch(commitString))
+                        {
+                            var match = StatusArgs.MultipleCommitRegex.Match(commitString);
+                            var commitBefore = repo.Lookup<Commit>(match.Groups["before"].Value);
+                            var commitAfter = repo.Lookup<Commit>(match.Groups["after"].Value);
+                            if (commitBefore != null && commitAfter != null)
+                            {
+                                statusArgs.BeforeVersion = commitBefore.Sha;
+                                statusArgs.AfterVersion = commitAfter.Sha;
+                                commitString = null;
+                            }
+                        }
+                        else if (repo.Lookup<Commit>(commitString) != null)
+                        {
+                            var commit = repo.Lookup<Commit>(commitString);
+                            statusArgs.BeforeVersion = commit.Sha;
+                            statusArgs.AfterVersion = "WORKING";
+                            commitString = null;
+                        }
+
+                        if (commitString != null)
+                        {
+                            Console.Error.WriteLine($"Invalid commit {commitString}.");
+                            PrintUsage(Console.Error, command);
+                            value = null;
+                            return false;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(pathString))
+                        {
+                            if (statusArgs.Path != null)
+                                statusArgs.Path = Path.Combine(statusArgs.Path, pathString);
+                            else
+                                statusArgs.Path = pathString;
+                        }
+
+                        break;
+                    }
+                }
+
                 if (args.Length > 0)
                 {
-                    var pathString = args[0];
+                    var pathOrCommitString = args[0];
                     args = args.Slice(1);
 
-                    if (string.IsNullOrWhiteSpace(pathString))
-                        pathString = null;
-                    statusArgs.Path = pathString;
+                    if (pathOrCommitString.Contains(".."))
+                    {
+                        statusArgs.Path = pathOrCommitString;
+                    }
                 }
 
                 value = new CommandLineArgs(command, repo, statusArgs);

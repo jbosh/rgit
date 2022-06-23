@@ -9,6 +9,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using LibGit2Sharp;
 using rgit.Views;
 using SkiaSharp;
@@ -154,12 +155,21 @@ public partial class LogPanel : UserControl
 
     private GitLogRow[] GetPreparedRows(Branch branch)
     {
-        Debug.Assert(this.repository != null, $"Can't call {nameof(this.GetPreparedRows)} with null repo.");
-        var graph = GitGraph.GenerateGraph(this.repository, branch.Tip, this.PathSpec);
+        var repo = this.repository;
+        Debug.Assert(repo != null, $"Can't call {nameof(this.GetPreparedRows)} with null repo.");
+        var graph = GitGraph.GenerateGraph(repo, branch.Tip, this.PathSpec);
         var list = new List<GitLogRow>(graph.Length);
         foreach (var node in graph)
         {
-            list.Add(new GitLogRow(node));
+            var row = new GitLogRow(node);
+            var sha = node.Sha;
+            var branches = repo.Branches.Where(b => b.Tip.Sha == sha).ToArray();
+            var tags = repo.Tags.Where(t => (t.Target is Commit) && (t.Target.Sha == sha)).ToArray();
+            if (branches.Length > 0)
+                row.Branches = branches;
+            if (tags.Length > 0)
+                row.Tags = tags;
+            list.Add(row);
         }
 
         return list.ToArray();
@@ -270,7 +280,8 @@ public partial class LogPanel : UserControl
         public string Author { get; set; }
         public DateTimeOffset AuthorDate { get; set; }
         public string Sha { get; set; }
-        public bool Hidden { get; set; }
+        public Branch[]? Branches { get; set; }
+        public Tag[]? Tags { get; set; }
 
         public GitGraph.Node Node { get; set; }
 
@@ -302,6 +313,11 @@ public partial class LogPanel : UserControl
         private const int BranchWidth = 20;
         private const float BranchCircleRadius = 4f;
 
+        private const int TagPadding = 4;
+        private const int TagRounding = 10;
+
+        private const float TextNudgeY = 2.0f;
+
         public override int RowCount => this.Items.Length;
         public GitLogRow[] Items { get; set; } = Array.Empty<GitLogRow>();
 
@@ -316,10 +332,25 @@ public partial class LogPanel : UserControl
             new(255, 235, 59),
         };
 
+        private static readonly SKColor[] BranchColors =
+        {
+            new(230, 81, 0), // Orange, tag color
+            new(26, 35, 126),
+            new(27, 94, 32),
+            new(136, 14, 79),
+            new(78, 52, 46),
+            new(130, 119, 23),
+            new(191, 54, 12),
+        };
+
         private static readonly SKPaint[] GraphPaints = GraphColors.Select(c => new SKPaint { Color = c }).ToArray();
         private static readonly SKPaint[] GraphStrokes = GraphColors.Select(c => new SKPaint { Color = c, IsStroke = true }).ToArray();
+        private static readonly SKPaint[] BranchPaints = BranchColors.Select(c => new SKPaint { Color = c }).ToArray();
+
         private static SKPaint GetGraphPaint(int index) => GraphPaints[index % GraphPaints.Length];
         private static SKPaint GetStrokePaint(int index) => GraphStrokes[index % GraphPaints.Length];
+        private static SKPaint GetBranchPaint(string name) => BranchPaints[name.Murmur2() % BranchPaints.Length];
+        private static SKPaint GetTagPaint() => BranchPaints[0];
 
         public LogPanelModel()
         {
@@ -344,7 +375,8 @@ public partial class LogPanel : UserControl
 
         public override void RenderRow(SKCanvas canvas, SKRect bounds, int rowIndex, ListViewRowState state)
         {
-            var node = this.Items[rowIndex].Node;
+            var item = this.Items[rowIndex];
+            var node = item.Node;
 
             Debug.Assert(this.ListView != null, $"Cannot render on detached {nameof(ListViewModel)}.");
             if ((state & (ListViewRowState.Selected | ListViewRowState.Hovered)) != 0)
@@ -353,11 +385,12 @@ public partial class LogPanel : UserControl
                 canvas.DrawRect(bounds.Left, bounds.Top, bounds.Width, bounds.Height, paint);
             }
 
+            Span<ushort> glyphs = stackalloc ushort[512]; // Max supported string length.
+
             var left = 0.0f;
             for (var col = 0; col < this.Columns.Count; col++)
             {
                 var column = this.Columns[col];
-                var text = this.GetCellValue(rowIndex, col);
                 var right = left + column.Width;
                 canvas.Save();
                 canvas.ClipRect(new SKRect(left, bounds.Top, right - RowTextPadding, bounds.Bottom));
@@ -491,7 +524,45 @@ public partial class LogPanel : UserControl
                 }
                 else
                 {
-                    canvas.DrawText(text, left + RowTextPadding, bounds.Top + this.ListView.DefaultFont.Size, this.ListView.DefaultFont, this.ListView.DefaultFontPaint);
+                    var columnLeft = left + RowTextPadding;
+                    var textTop = bounds.Top + this.ListView.DefaultFont.Size + TextNudgeY;
+                    var text = this.GetCellValue(rowIndex, col);
+                    if (col == 1)
+                    {
+                        if (item.Branches != null)
+                        {
+                            var font = this.ListView.DefaultFont;
+                            var paint = this.ListView.DefaultFontPaint;
+                            foreach (var branch in item.Branches)
+                            {
+                                var name = branch.FriendlyName;
+                                font.GetGlyphs(name, glyphs);
+                                var width = font.MeasureText(glyphs.Slice(0, Math.Min(glyphs.Length, name.Length)), paint);
+
+                                canvas.DrawRect(columnLeft, bounds.Top, width + (2 * TagPadding), bounds.Height, GetBranchPaint(name));
+                                canvas.DrawText(name, columnLeft + TagPadding, textTop, this.ListView.DefaultFont, this.ListView.DefaultFontPaint);
+                                columnLeft += width + (2 * TagPadding) + TagPadding;
+                            }
+                        }
+
+                        if (item.Tags != null)
+                        {
+                            var font = this.ListView.DefaultFont;
+                            var paint = this.ListView.DefaultFontPaint;
+                            foreach (var tag in item.Tags)
+                            {
+                                var name = tag.FriendlyName;
+                                font.GetGlyphs(name, glyphs);
+                                var width = font.MeasureText(glyphs.Slice(0, Math.Min(glyphs.Length, name.Length)), paint);
+
+                                canvas.DrawRoundRect(columnLeft, bounds.Top + 2, width + (2 * TagPadding), bounds.Height - 4, TagRounding, TagRounding, GetTagPaint());
+                                canvas.DrawText(name, columnLeft + TagPadding, textTop, this.ListView.DefaultFont, this.ListView.DefaultFontPaint);
+                                columnLeft += width + (2 * TagPadding) + TagPadding;
+                            }
+                        }
+                    }
+
+                    canvas.DrawText(text, columnLeft, textTop, this.ListView.DefaultFont, this.ListView.DefaultFontPaint);
                 }
 
                 canvas.Restore();

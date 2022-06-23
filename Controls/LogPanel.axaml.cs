@@ -9,7 +9,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 using LibGit2Sharp;
 using rgit.Views;
 using SkiaSharp;

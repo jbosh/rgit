@@ -140,7 +140,7 @@ public partial class CommitWindow : Window
 
         if (error != null)
         {
-            var lines = error.Trim().Split('\n', '\r');
+            var lines = error.Trim().Split(new[] { '\n', '\r' });
             for (var i = lines.Length - 1; i >= 0; i--)
             {
                 if (lines[i].Length == 0)

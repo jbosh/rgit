@@ -23,6 +23,7 @@ public static class Extensions
     public static string WorkingDirectory(this LibGit2Sharp.Repository repo) => repo.Info.WorkingDirectory;
 
     public static uint Murmur2(this string s) => Murmur2(s.AsSpan(), 0);
+
     public static uint Murmur2(ReadOnlySpan<char> data, uint seed = 0)
     {
         var bytes = MemoryMarshal.AsBytes(data);
@@ -59,6 +60,7 @@ public static class Extensions
             }
 
             // Handle the last few bytes of the input array
+#pragma warning disable S907 // Goto
             switch (len)
             {
                 case 3:
@@ -72,6 +74,7 @@ public static class Extensions
                     h *= m;
                     break;
             }
+#pragma warning restore
 
             // Do a few final mixes of the hash to ensure the last few
             // bytes are well-incorporated.

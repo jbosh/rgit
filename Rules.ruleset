@@ -31,6 +31,7 @@
         <Rule Id="S1199" Action="Hidden"/> <!-- Can't use nested scopes in a method. -->
         <Rule Id="S1854" Action="Hidden"/> <!-- Remove useless assignment. -->
         <Rule Id="S2183" Action="Hidden"/> <!-- Useless shift by 0. -->
+        <Rule Id="S3267" Action="Hidden"/> <!-- Simplify loop by calling Select. -->
         <Rule Id="S3440" Action="Hidden"/> <!-- Check for identical value before assignment. -->
         <Rule Id="S4457" Action="Hidden"/> <!-- Split parameter check and handling into separate tasks. -->
     </Rules>

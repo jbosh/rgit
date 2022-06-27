@@ -61,18 +61,28 @@ public static class GitExtensions
                     {
                         Debug.Assert(file.BranchShaBefore != null, "Cannot have added file with after and no before.");
 
+                        // Old file is always empty.
                         var oldFile = TemporaryFiles.GetFilePath();
-                        var newFile = TemporaryFiles.GetFilePath();
                         filesToDelete.Add(oldFile);
-                        filesToDelete.Add(newFile);
-                        await repo.GetFileAtChange(newFile, file.Path, file.BranchShaAfter);
 
                         baseFile = oldFile;
-                        myFile = newFile;
                         title1 = $"{file.Path}: {file.BranchShaBefore}";
-                        title2 = $"{file.Path}: {file.BranchShaAfter}";
                         leftReadOnly = true;
-                        rightReadOnly = true;
+
+                        if (file.BranchShaAfter == "WORKING")
+                        {
+                            title2 = $"{file.Path}: Working Tree";
+                            myFile = file.Path;
+                        }
+                        else
+                        {
+                            var newFile = TemporaryFiles.GetFilePath();
+                            filesToDelete.Add(newFile);
+                            await repo.GetFileAtChange(newFile, file.Path, file.BranchShaAfter);
+                            rightReadOnly = true;
+                            myFile = newFile;
+                            title2 = $"{file.Path}: {file.BranchShaAfter}";
+                        }
                     }
                     else
                     {
@@ -133,27 +143,33 @@ public static class GitExtensions
                     {
                         if (file.GitTreeEntryChanges != null)
                         {
-                            // We're doing a log based diff.
+                            // We’re doing a log based diff.
                             var entry = file.GitTreeEntryChanges;
 
-                            var newFile = TemporaryFiles.GetFilePath();
                             var oldFile = TemporaryFiles.GetFilePath();
-                            var newBlob = repo.Lookup<Blob>(entry.Oid);
                             var oldBlob = repo.Lookup<Blob>(entry.OldOid);
-                            await newBlob.WriteToFile(newFile);
                             await oldBlob.WriteToFile(oldFile);
-                            filesToDelete.Add(newFile);
                             filesToDelete.Add(oldFile);
-
                             baseFile = oldFile;
-                            myFile = newFile;
+
                             title1 = $"{file.Path}: {file.BranchShaBefore}";
-                            if (file.BranchShaAfter == "WORKING")
-                                title2 = $"{file.Path}: Working Tree";
-                            else
-                                title2 = $"{file.Path}: {file.BranchShaAfter}";
                             leftReadOnly = true;
-                            rightReadOnly = true;
+
+                            if (file.BranchShaAfter == "WORKING")
+                            {
+                                title2 = $"{file.Path}: Working Tree";
+                                myFile = file.Path;
+                            }
+                            else
+                            {
+                                var newFile = TemporaryFiles.GetFilePath();
+                                var newBlob = repo.Lookup<Blob>(entry.Oid);
+                                await newBlob.WriteToFile(newFile);
+                                filesToDelete.Add(newFile);
+                                myFile = newFile;
+                                title2 = $"{file.Path}: {file.BranchShaAfter}";
+                                rightReadOnly = true;
+                            }
                         }
                         else
                         {

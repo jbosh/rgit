@@ -35,7 +35,7 @@ public class CommandLineArgs
         public string? BeforeVersion { get; set; }
         public string? AfterVersion { get; set; }
 
-        public static readonly Regex MultipleCommitRegex = new Regex(@"(?<before>[a-fA-F0-9]+)\.\.(?<after>[a-fA-F0-9]+)");
+        public static readonly Regex MultipleCommitRegex = new Regex(@"^(?<before>.+)\.\.(?<after>.+)$");
     }
 
     private CommandLineArgs(LaunchCommand command, Repository repository)
@@ -209,7 +209,8 @@ public class CommandLineArgs
                             {
                                 breakLoop = true;
                             }
-                            else if (StatusArgs.MultipleCommitRegex.IsMatch(pathOrCommitString))
+
+                            if (!foundCommit && StatusArgs.MultipleCommitRegex.IsMatch(pathOrCommitString))
                             {
                                 var match = StatusArgs.MultipleCommitRegex.Match(pathOrCommitString);
                                 var valueBefore = match.Groups["before"].Value;
@@ -218,8 +219,8 @@ public class CommandLineArgs
                                 var commitAfter = repo.Lookup<Commit>(valueAfter);
                                 if (commitBefore != null && commitAfter != null)
                                 {
-                                    var branchBefore = repo.Branches[valueBefore];
-                                    var branchAfter = repo.Branches[valueAfter];
+                                    repo.Branches.TryGet(valueBefore, out var branchBefore);
+                                    repo.Branches.TryGet(valueAfter, out var branchAfter);
                                     statusArgs.BeforeVersion = branchBefore?.FriendlyName ?? commitBefore.Sha;
                                     statusArgs.AfterVersion = branchAfter?.FriendlyName ?? commitAfter.Sha;
                                     pathOrCommitString = null;
@@ -228,11 +229,19 @@ public class CommandLineArgs
                             else if (repo.Lookup<Commit>(pathOrCommitString) != null)
                             {
                                 var commit = repo.Lookup<Commit>(pathOrCommitString);
-                                var branch = repo.Branches[pathOrCommitString];
+                                repo.Branches.TryGet(pathOrCommitString, out var branch);
 
-                                statusArgs.BeforeVersion = branch?.FriendlyName ?? commit.Sha;
-                                if (statusArgs.AfterVersion == null)
-                                    statusArgs.AfterVersion = "WORKING";
+                                if (foundCommit)
+                                {
+                                    statusArgs.AfterVersion = branch?.FriendlyName ?? commit.Sha;
+                                }
+                                else
+                                {
+                                    statusArgs.BeforeVersion = branch?.FriendlyName ?? commit.Sha;
+                                    if (statusArgs.AfterVersion == null)
+                                        statusArgs.AfterVersion = "WORKING";
+                                }
+
                                 pathOrCommitString = null;
                             }
 
@@ -281,7 +290,7 @@ public class CommandLineArgs
                     {
                         var pathOrBranchString = args[0];
                         args = args.Slice(1);
-                        if (repo.Branches[pathOrBranchString] != null)
+                        if (repo.Branches.TryGet(pathOrBranchString, out _))
                         {
                             logArgs.Branch = pathOrBranchString;
                         }
@@ -335,7 +344,7 @@ public class CommandLineArgs
                     }
                 }
 
-                if (logArgs.Branch != null && repo.Branches[logArgs.Branch] == null)
+                if (logArgs.Branch != null && repo.Branches.TryGet(logArgs.Branch, out _))
                 {
                     Console.Error.WriteLine($"Couldn't find branch {logArgs.Branch}.");
                     value = null;

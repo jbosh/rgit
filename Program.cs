@@ -33,7 +33,7 @@ public static class Program
         {
             if (commandLineArgs.Command == LaunchCommand.Difftool)
             {
-                rgit.Views.Difftool.Run(repository);
+                rgit.Views.Difftool.Run(repository, commandLineArgs.Status);
                 return 0;
             }
             else

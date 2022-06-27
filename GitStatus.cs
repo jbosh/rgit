@@ -64,6 +64,20 @@ public class GitStatus
         this.BranchShaAfter = branchShaAfter;
     }
 
+    public static GitStatus FromChanges(TreeEntryChanges entry, string? branchShaBefore, string? branchShaAfter)
+    {
+        var status = entry.Status switch
+        {
+            ChangeKind.Added => GitStatusString.Added,
+            ChangeKind.Deleted => GitStatusString.Deleted,
+            ChangeKind.Modified => GitStatusString.Modified,
+            ChangeKind.Renamed => GitStatusString.Renamed,
+            ChangeKind.TypeChanged => GitStatusString.Modified,
+            _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
+        };
+        return new GitStatus(entry.Path, status, entry, branchShaBefore, branchShaAfter);
+    }
+
     private static readonly Dictionary<GitStatusString, Color> ColorsByStatus = new()
     {
         { GitStatusString.Added, Color.FromRgb(186, 104, 200) },

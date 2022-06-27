@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -52,14 +54,37 @@ public static class GitExtensions
                 }
                 case GitStatusString.Added:
                 {
-                    if (gitVersion != null) throw new NotImplementedException();
-                    var tmpFile = TemporaryFiles.GetFilePath();
-                    filesToDelete.Add(tmpFile);
-                    baseFile = tmpFile;
-                    myFile = Path.Combine(workDir, file.Path);
-                    title1 = file.Path;
-                    title2 = $"{file.Path}: 00000000";
-                    rightReadOnly = true;
+                    if (gitVersion != null)
+                        throw new NotImplementedException();
+
+                    if (file.BranchShaAfter != null)
+                    {
+                        Debug.Assert(file.BranchShaBefore != null, "Cannot have added file with after and no before.");
+
+                        var oldFile = TemporaryFiles.GetFilePath();
+                        var newFile = TemporaryFiles.GetFilePath();
+                        filesToDelete.Add(oldFile);
+                        filesToDelete.Add(newFile);
+                        await repo.GetFileAtChange(newFile, file.Path, file.BranchShaAfter);
+
+                        baseFile = oldFile;
+                        myFile = newFile;
+                        title1 = $"{file.Path}: {file.BranchShaBefore}";
+                        title2 = $"{file.Path}: {file.BranchShaAfter}";
+                        leftReadOnly = true;
+                        rightReadOnly = true;
+                    }
+                    else
+                    {
+                        var tmpFile = TemporaryFiles.GetFilePath();
+                        filesToDelete.Add(tmpFile);
+                        baseFile = tmpFile;
+                        myFile = Path.Combine(workDir, file.Path);
+                        title1 = file.Path;
+                        title2 = $"{file.Path}: 00000000";
+                        rightReadOnly = true;
+                    }
+
                     break;
                 }
                 case GitStatusString.Deleted:
@@ -104,7 +129,7 @@ public static class GitExtensions
                 case GitStatusString.Modified:
                 case GitStatusString.ModifiedAndRenamed:
                 {
-                    if (gitVersion != null)
+                    if (gitVersion != null || file.BranchShaAfter != null)
                     {
                         if (file.GitTreeEntryChanges != null)
                         {
@@ -132,6 +157,9 @@ public static class GitExtensions
                         }
                         else
                         {
+                            if (gitVersion == null)
+                                throw new NotImplementedException();
+
                             // We're doing this diff against working tree.
                             var tmpFile = TemporaryFiles.GetFilePath();
                             await repo.GetFileAtChange(tmpFile, file.Path, gitVersion);
@@ -377,6 +405,7 @@ public static class GitExtensions
                     repo.Index.Add((Blob)treeEntry.Target, treeEntry.Path, treeEntry.Mode);
                 }
             }
+
             repo.Index.Write();
         });
 
@@ -448,6 +477,13 @@ public static class GitExtensions
             {
                 // Ignore path in this case because we're grabbing the blob directly.
                 blob = repo.Lookup<Blob>(revision);
+
+                // If blob is null, try to get it using filePath
+                if (blob == null)
+                {
+                    blob = repo.Lookup<Blob>($"{revision}:{filePath}");
+                }
+
                 break;
             }
         }
@@ -533,5 +569,19 @@ public static class GitExtensions
 
         TemporaryFiles.SafeDelete(messageFile);
         return exitCode == 0 ? null : outputBuilder.ToString();
+    }
+
+    public static bool TryGet(this BranchCollection collection, string branchName, [NotNullWhen(true)] out Branch? branch)
+    {
+        try
+        {
+            branch = collection[branchName];
+            return branch != null;
+        }
+        catch (InvalidSpecificationException)
+        {
+            branch = null;
+            return false;
+        }
     }
 }

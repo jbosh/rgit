@@ -331,7 +331,7 @@ public partial class StatusPanel : UserControl
                         var tree = this.repository.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
                         foreach (var entry in tree)
                         {
-                            this.diffParent0.Add(GetStatus(entry, parent.Sha, commit.Sha));
+                            this.diffParent0.Add(GitStatus.FromChanges(entry, parent.Sha, commit.Sha));
                         }
 
                         break;
@@ -342,7 +342,7 @@ public partial class StatusPanel : UserControl
                         var tree = this.repository.Diff.Compare<TreeChanges>(parent.Tree, commit.Tree);
                         foreach (var entry in tree)
                         {
-                            this.diffParent1.Add(GetStatus(entry, parent.Sha, commit.Sha));
+                            this.diffParent1.Add(GitStatus.FromChanges(entry, parent.Sha, commit.Sha));
                         }
 
 #pragma warning disable S907 // Cannot use goto.
@@ -378,7 +378,7 @@ public partial class StatusPanel : UserControl
                         var tree = this.repository.Diff.Compare<TreeChanges>(beforeTree, DiffTargets.WorkingDirectory);
                         foreach (var entry in tree)
                         {
-                            this.diffParent0.Add(GetStatus(entry, beforeSha, "WORKING"));
+                            this.diffParent0.Add(GitStatus.FromChanges(entry, beforeSha, "WORKING"));
                         }
 
                         break;
@@ -388,38 +388,25 @@ public partial class StatusPanel : UserControl
                         var tree = this.repository.Diff.Compare<TreeChanges>(beforeTree, DiffTargets.Index);
                         foreach (var entry in tree)
                         {
-                            this.diffParent0.Add(GetStatus(entry, beforeSha, "STAGE"));
+                            this.diffParent0.Add(GitStatus.FromChanges(entry, beforeSha, "STAGE"));
                         }
 
                         break;
                     }
                     default:
                     {
+                        var afterSha = this.gitVersionAfter;
                         var after = this.repository.Lookup<Commit>(this.gitVersionAfter);
                         var tree = this.repository.Diff.Compare<TreeChanges>(beforeTree, after.Tree);
                         foreach (var entry in tree)
                         {
-                            this.diffParent0.Add(GetStatus(entry, beforeSha, after.Sha));
+                            this.diffParent0.Add(GitStatus.FromChanges(entry, beforeSha, afterSha));
                         }
 
                         break;
                     }
                 }
             }
-        }
-
-        static GitStatus GetStatus(TreeEntryChanges entry, string? branchShaBefore, string? branchShaAfter)
-        {
-            var status = entry.Status switch
-            {
-                ChangeKind.Added => GitStatusString.Added,
-                ChangeKind.Deleted => GitStatusString.Deleted,
-                ChangeKind.Modified => GitStatusString.Modified,
-                ChangeKind.Renamed => GitStatusString.Renamed,
-                ChangeKind.TypeChanged => GitStatusString.Modified,
-                _ => throw new Exception($"Unknown {nameof(entry.Status)} value {entry.Status}."),
-            };
-            return new GitStatus(entry.Path, status, entry, branchShaBefore, branchShaAfter);
         }
     }
 

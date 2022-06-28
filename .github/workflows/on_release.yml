@@ -1,0 +1,63 @@
+name: Publish
+on:
+  push:
+    branches:
+      - 'releases/**'
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_NOLOGO: "true"
+  MSBUILDDISABLENODEREUSE: "1"
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: "6.0.x"
+      - name: Lint
+        run: |
+          ./run.sh build -c Lint
+      - name: Build
+        run: |
+          ./run.sh publish --ci --os linux --arch x64
+          ./run.sh publish --ci --os osx --arch x64
+          ./run.sh publish --ci --os osx --arch arm64
+      - name: Archive OSX x64
+        uses: actions/upload-artifact@v3
+        with:
+          name: osx-x64.app.tgz
+          path: bin/Release/net6.0/osx-x64/rgit.app.tgz
+      - name: Archive OSX arm64
+        uses: actions/upload-artifact@v3
+        with:
+            name: osx-arm64.app.tgz
+            path: bin/Release/net6.0/osx-arm64/rgit.app.tgz
+      - name: Archive Linux x64
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux-x64
+          path: bin/Release/net6.0/linux-x64/publish/rgit
+  build-win:
+    # Run Windows builds on Windows machine until https://github.com/dotnet/runtime/issues/3828 is resolved to add app icon.
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: "6.0.x"
+      - name: Build
+        run: |
+          dotnet publish -c Release --arch x64 --os win --self-contained=false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+      - name: Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: win-x64.exe
+          path: |
+            bin/Release/net6.0/win-x64/publish/rgit.exe

@@ -95,16 +95,18 @@ build_cmd() {
         fi
         
         dotnet publish -c "$CONFIG" "${VERBOSITY[@]}" "$SHARED_COMPILATION" --arch "$ARCH" --os "$OS" "${PUBLISH_ARGS[@]}"
-        
+    
+        PUBLISH_DIR="$ROOT_DIR/bin/$CONFIG/net6.0/$OS-$ARCH"
+
         if [[ "$OS" == "osx" ]]; then
-            PUBLISH_DIR="$ROOT_DIR/bin/$CONFIG/net6.0/$OS-$ARCH"
             APP_DIR="$ROOT_DIR/bin/$CONFIG/net6.0/$OS-$ARCH/rgit.app"
             rm -rf "$APP_DIR"
             mkdir -p "$APP_DIR" || exit 1
             cp -r "$ROOT_DIR"/Assets/osx/* "$APP_DIR" || exit 1
-            cp "$PUBLISH_DIR"/Publish/* "$APP_DIR/Contents/MacOS"
+            cp "$PUBLISH_DIR"/publish/* "$APP_DIR/Contents/MacOS" || exit 1
             rm "$APP_DIR/Contents/MacOS/README"
-            
+            cd "$PUBLISH_DIR" || exit 1
+            tar -czf "rgit.app.tgz" "rgit.app" || exit 1
         fi
     else
         dotnet build -c "$CONFIG" "${VERBOSITY[@]}" "$SHARED_COMPILATION"

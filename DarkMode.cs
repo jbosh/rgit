@@ -27,6 +27,11 @@ public static class DarkMode
     private const int GWL_STYLE = -16;
     private const int GWL_EXSTYLE = -20;
 
+    private const int ATTACH_PARENT_PROCESS = -1;
+    private const int STD_INPUT_HANDLE = -10;
+    private const int STD_OUTPUT_HANDLE = -11;
+    private const int STD_ERROR_HANDLE = -12;
+
     private static readonly bool DarkModeSupported = false;
     private static readonly uint BuildNumber;
 
@@ -87,6 +92,19 @@ public static class DarkMode
         darkModeEnabled = ShouldAppUseDarkCallback() && !IsHighContrast();
 
         // If there's a bad scroll bar, fix it here
+    }
+
+    public static void EnableConsole()
+    {
+        // Attach to a console, if available.
+        var attached = AttachConsole();
+
+        if (!attached)
+            return;
+
+        // Set stderr to stdout, if available.
+        var stdoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetStdHandle(STD_ERROR_HANDLE, stdoutHandle);
     }
 
     private static void AllowDarkModeForApp(bool allow)
@@ -519,6 +537,16 @@ public static class DarkMode
 
     [DllImport("User32.dll", SetLastError = true)]
     private static extern IntPtr GetActiveWindow();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AttachConsole(int dwProcessId = ATTACH_PARENT_PROCESS);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetStdHandle(int nStdHandle, IntPtr hHandle);
 
     private enum WindowsMessage
     {

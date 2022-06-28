@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using LibGit2Sharp;
 
@@ -22,6 +23,15 @@ public class CommandLineArgs
     public Repository Repository { get; }
     public LogArgs? Log { get; }
     public StatusArgs? Status { get; }
+
+    private static string AppVersion { get; }
+
+    static CommandLineArgs()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        AppVersion = version ?? "0.0.0.0-internal-build";
+    }
 
     public class LogArgs
     {
@@ -56,15 +66,16 @@ public class CommandLineArgs
         this.Status = args;
     }
 
-    public static void PrintUsage(System.IO.TextWriter stream, LaunchCommand? command)
+    public static void PrintUsage(TextWriter stream, LaunchCommand? command)
     {
+        stream.WriteLine($"rgit version {AppVersion}");
         if (command.HasValue)
         {
             switch (command.Value)
             {
                 case LaunchCommand.Commit:
                 {
-                    stream.WriteLine($"rgit commit");
+                    stream.WriteLine("usage: rgit commit");
                     stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Displays commit dialog.");
@@ -72,7 +83,7 @@ public class CommandLineArgs
                 }
                 case LaunchCommand.Difftool:
                 {
-                    stream.WriteLine($"rgit difftool");
+                    stream.WriteLine("usage: rgit difftool");
                     stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Similar to git difftool except it launches them all simultaneously.");
@@ -80,7 +91,7 @@ public class CommandLineArgs
                 }
                 case LaunchCommand.Log:
                 {
-                    stream.WriteLine($"rgit log [<branch>] [[--] [<path>]]");
+                    stream.WriteLine("usage: rgit log [<branch>] [[--] [<path>]]");
                     stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Shows the commit logs.");
@@ -90,7 +101,7 @@ public class CommandLineArgs
                 }
                 case LaunchCommand.Status:
                 {
-                    stream.WriteLine($"rgit status [<path>]");
+                    stream.WriteLine("usage: rgit status [<path>]");
                     stream.WriteLine();
                     stream.WriteLine("DESCRIPTION:");
                     stream.WriteLine("Displays working changes compared to HEAD.");
@@ -106,7 +117,7 @@ public class CommandLineArgs
         }
         else
         {
-            stream.WriteLine("rgit COMMAND [...]");
+            stream.WriteLine("usage: rgit COMMAND [...]");
             stream.WriteLine("COMMAND:");
             stream.WriteLine("  commit   launches a commit window");
             stream.WriteLine("  difftool similar to git difftool but launches all simultaneously");

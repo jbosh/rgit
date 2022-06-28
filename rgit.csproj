@@ -10,6 +10,13 @@
         <ApplicationIcon>$(MSBuildThisFileDirectory)Assets/Icon.ico</ApplicationIcon>
     </PropertyGroup>
     <PropertyGroup>
+        <AssemblyName>rgit</AssemblyName>
+        <Version>0.0.0.0-internal-build</Version>
+        <Authors>Justin Boshoven</Authors>
+        <PackageProjectUrl>https://github.com/jbosh/rgit</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/jbosh/rgit/blob/main/LICENSE</PackageLicenseUrl>
+    </PropertyGroup>
+    <PropertyGroup>
         <DefineConstants>TRACE</DefineConstants>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>

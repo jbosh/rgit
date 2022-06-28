@@ -34,6 +34,7 @@ build_cmd() {
     PUBLISH="0"
     OS="win"
     ARCH="x64"
+    VERSION=""
     
     SHARED_COMPILATION=""
 
@@ -77,7 +78,10 @@ build_cmd() {
                                                 ;;
                             esac
                             ;;
-            --ci)           SHARED_COMPILATION="/p:UseSharedCompilation=false"
+            --version)      shift
+                            VERSION="$1"
+                            ;;
+            --ci)           SHARED_COMPILATION="-p:UseSharedCompilation=false"
                             ;;
             *)              build_usage
                             exit 1
@@ -92,6 +96,10 @@ build_cmd() {
         if [[ "$OS" != "osx" ]]; then
             # OSX already gets packaged up.
             PUBLISH_ARGS+=("-p:IncludeNativeLibrariesForSelfExtract=true")
+        fi
+        
+        if [[ "$VERSION" != "" ]]; then
+            PUBLISH_ARGS+=("-p:Version=$VERSION")
         fi
         
         dotnet publish -c "$CONFIG" "${VERBOSITY[@]}" "$SHARED_COMPILATION" --arch "$ARCH" --os "$OS" "${PUBLISH_ARGS[@]}"

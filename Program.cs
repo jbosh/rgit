@@ -19,6 +19,11 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            DarkMode.EnableConsole();
+        }
+
         if (!CommandLineArgs.TryParse(args, out commandLineArgs))
         {
             return 1;

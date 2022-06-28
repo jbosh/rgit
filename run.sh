@@ -5,6 +5,7 @@ usage() {
     echo "COMMANDS:"
     echo " build            Builds all projects."
     echo " lint             Runs linter on all projects."
+    echo " publish          Shorthand for 'build --publish -c Release'."
     echo " help             Print this help."
 }
 
@@ -94,6 +95,17 @@ build_cmd() {
         fi
         
         dotnet publish -c "$CONFIG" "${VERBOSITY[@]}" "$SHARED_COMPILATION" --arch "$ARCH" --os "$OS" "${PUBLISH_ARGS[@]}"
+        
+        if [[ "$OS" == "osx" ]]; then
+            PUBLISH_DIR="$ROOT_DIR/bin/$CONFIG/net6.0/$OS-$ARCH"
+            APP_DIR="$ROOT_DIR/bin/$CONFIG/net6.0/$OS-$ARCH/rgit.app"
+            rm -rf "$APP_DIR"
+            mkdir -p "$APP_DIR" || exit 1
+            cp -r "$ROOT_DIR"/Assets/osx/* "$APP_DIR" || exit 1
+            cp "$PUBLISH_DIR"/Publish/* "$APP_DIR/Contents/MacOS"
+            rm "$APP_DIR/Contents/MacOS/README"
+            
+        fi
     else
         dotnet build -c "$CONFIG" "${VERBOSITY[@]}" "$SHARED_COMPILATION"
     fi
@@ -115,6 +127,8 @@ case "$COMMAND" in
     build)          build_cmd "$@"
                     ;;
     lint)           lint_cmd
+                    ;;
+    publish)        build_cmd --publish -c Release "$@"
                     ;;
     help)           usage
                     exit 0

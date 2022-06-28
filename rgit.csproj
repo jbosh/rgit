@@ -7,6 +7,7 @@
         <TrimMode>copyused</TrimMode>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <Configurations>Debug;Release;Lint</Configurations>
+        <ApplicationIcon>$(MSBuildThisFileDirectory)Assets/Icon.ico</ApplicationIcon>
     </PropertyGroup>
     <PropertyGroup>
         <DefineConstants>TRACE</DefineConstants>

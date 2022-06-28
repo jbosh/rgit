@@ -6,7 +6,7 @@
         xmlns:rgit="clr-namespace:rgit.Controls"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="rgit.Views.LogWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/Icon.ico"
         Title="rgit"
         KeyDown="OnKeyDown"
         Closing="OnClosing">

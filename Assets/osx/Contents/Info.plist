@@ -3,7 +3,7 @@
 <plist version="0.9">
 <dict>
 	<key>NSPrincipalClass</key>
-	<string>wxNSApplication</string>
+	<string>NSApplication</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleIdentifier</key>
@@ -12,15 +12,12 @@
 	<string>English</string>
 	<key>CFBundleLocalizations</key>
 	<array>
-		<string>de</string>
 		<string>en</string>
-		<string>fr</string>
-		<string>it</string>
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>rgit</string>
 	<key>CFBundleIconFile</key>
-	<string>wxmac.icns</string>
+	<string>rgit.icns</string>
 	<key>CFBundleName</key>
 	<string>rgit</string>
 	<key>CFBundlePackageType</key>
@@ -28,15 +25,15 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>3.1.3</string>
+	<string>${VERSION}</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.1.3</string>
+	<string>${VERSION_SHORT}</string>
 	<key>CFBundleGetInfoString</key>
-	<string>dataview version 3.1.3, (c) 2002-2018 wxWidgets</string>
+	<string>rgit version ${VERSION} (c) 2021-2022 jbosh</string>
 	<key>CFBundleLongVersionString</key>
-	<string>3.1.3, (c) 2002-2018 wxWidgets</string>
+	<string>${VERSION}, (c) 2021-2022 jbosh</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright 2002-2018 wxWidgets</string>
+	<string>Copyright 2021-2022 jbosh</string>
 	<key>LSRequiresCarbon</key>
 	<true/>
 	<key>NSRequiresAquaSystemAppearance</key>

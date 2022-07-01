@@ -39,19 +39,15 @@
             VerticalAlignment="Center"
             Padding="8, 0, 0, 0" />
 
-        <Grid Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-            </Grid.RowDefinitions>
+        <Grid Grid.Row="1" RowDefinitions="*, Auto">
             <TextBox
                 Grid.Row="0"
                 Name="CommitMessageBox"
                 AcceptsReturn="True"
                 AcceptsTab="True"
-                TextWrapping="WrapWithOverflow"
+                TextWrapping="Wrap"
                 FontFamily="Consolas, Menlo, Monospace, Courier New, Courier"
-                >
+            >
             </TextBox>
             <CheckBox
                 Grid.Row="1"

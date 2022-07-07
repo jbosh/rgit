@@ -62,11 +62,11 @@ public static class GitExtensions
                         Debug.Assert(file.BranchShaBefore != null, "Cannot have added file with after and no before.");
 
                         // Old file is always empty.
-                        var oldFile = TemporaryFiles.GetFilePath();
-                        filesToDelete.Add(oldFile);
+                        var emptyFile = TemporaryFiles.GetFilePath(touch: true);
+                        filesToDelete.Add(emptyFile);
 
-                        baseFile = oldFile;
-                        title1 = $"{file.Path}: {file.BranchShaBefore}";
+                        baseFile = emptyFile;
+                        title1 = $"{file.Path}: 00000000";
                         leftReadOnly = true;
 
                         if (file.BranchShaAfter == "WORKING")
@@ -76,7 +76,7 @@ public static class GitExtensions
                         }
                         else
                         {
-                            var newFile = TemporaryFiles.GetFilePath();
+                            var newFile = TemporaryFiles.GetFilePath(touch: true);
                             filesToDelete.Add(newFile);
                             await repo.GetFileAtChange(newFile, file.Path, file.BranchShaAfter);
                             rightReadOnly = true;
@@ -86,7 +86,7 @@ public static class GitExtensions
                     }
                     else
                     {
-                        var tmpFile = TemporaryFiles.GetFilePath();
+                        var tmpFile = TemporaryFiles.GetFilePath(touch: true);
                         filesToDelete.Add(tmpFile);
                         baseFile = tmpFile;
                         myFile = Path.Combine(workDir, file.Path);
@@ -101,7 +101,7 @@ public static class GitExtensions
                 case GitStatusString.Missing:
                 {
                     var originalFile = TemporaryFiles.GetFilePath();
-                    var emptyFile = TemporaryFiles.GetFilePath();
+                    var emptyFile = TemporaryFiles.GetFilePath(touch: true);
                     filesToDelete.Add(originalFile);
                     filesToDelete.Add(emptyFile);
                     await repo.GetFileAtChange(originalFile, file.Path, gitVersion ?? "HEAD");
@@ -403,7 +403,19 @@ public static class GitExtensions
         {
             foreach (var file in files)
             {
-                repo.Index.Add(file.Path);
+                switch (file.Status)
+                {
+                    case GitStatusString.Missing:
+                    {
+                        repo.Index.Remove(file.Path);
+                        break;
+                    }
+                    default:
+                    {
+                        repo.Index.Add(file.Path);
+                        break;
+                    }
+                }
             }
 
             repo.Index.Write();

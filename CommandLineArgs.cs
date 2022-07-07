@@ -355,7 +355,7 @@ public class CommandLineArgs
                     }
                 }
 
-                if (logArgs.Branch != null && repo.Branches.TryGet(logArgs.Branch, out _))
+                if (logArgs.Branch != null && !repo.Branches.TryGet(logArgs.Branch, out _))
                 {
                     Console.Error.WriteLine($"Couldn't find branch {logArgs.Branch}.");
                     value = null;

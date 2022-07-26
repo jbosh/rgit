@@ -420,7 +420,7 @@ public partial class ListView : UserControl, IDisposable
 
                     if (rightClicked)
                     {
-                        if (this.RowStates.Count(i => i.HasFlag(ListViewRowState.Selected)) <= 1)
+                        if (!this.RowStates[rowIndex].HasFlag(ListViewRowState.Selected))
                         {
                             for (var i = 0; i < this.RowStates.Length; i++)
                                 this.RowStates[i] &= ~ListViewRowState.Selected;
@@ -442,7 +442,7 @@ public partial class ListView : UserControl, IDisposable
                         this.previousSelectionIndex = rowIndex;
                         model.InvokeOnDoubleClicked();
                     }
-                    else if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+                    else if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
                     {
                         if (!rightClicked && this.RowStates[rowIndex].HasFlag(ListViewRowState.Selected))
                             this.RowStates[rowIndex] &= ~ListViewRowState.Selected;

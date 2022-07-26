@@ -144,6 +144,12 @@ public partial class ListView : UserControl, IDisposable
         this.RenderPanel.Height = this.ScrollViewer.Bounds.Height;
     }
 
+    public void ClearSelection()
+    {
+        for (var i = 0; i < this.RowStates.Length; i++)
+            this.RowStates[i] = ListViewRowState.None;
+    }
+
     public void Repaint()
     {
         this.RenderPanel.InvalidateVisual();

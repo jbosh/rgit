@@ -471,6 +471,7 @@ public partial class StatusPanel : UserControl
         }
 
         this.Model.EndUpdate();
+        this.ListView.ClearSelection();
     }
 
     private void OnContextMenu(PointerPressedEventArgs e)
